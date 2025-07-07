@@ -1,6 +1,6 @@
 import streamlit as st
 from MLBDeepDive import find_team, find_players
-from LiveScores import live_scores
+from LiveScores import datetime
 
 # --- Page Configuration ---
 st.set_page_config(
