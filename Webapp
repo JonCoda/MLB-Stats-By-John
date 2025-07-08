@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MLB Information Hub</title>
-    <!-- Tailwind CSS CDN -->
+    <!-- Tailwind CSS CDN for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* Custom styles for better aesthetics and mobile responsiveness */
@@ -16,6 +16,7 @@
             padding: 0;
             display: flex;
             justify-content: center;
+            min-height: 100vh;
         }
         .container {
             background-color: #ffffff;
@@ -267,15 +268,19 @@
                     let scoresHtml = '';
                     games.forEach(game => {
                         const competition = game.competitions[0];
-                        const status = competition.status.type.description;
+                        const status = competition.status.type.detail; // Using 'detail' for more specific status
                         const teams = competition.competitors;
                         const home = teams.find(team => team.homeAway === 'home');
                         const away = teams.find(team => team.homeAway === 'away');
 
+                        // Ensure scores are available before displaying, default to '0' if null
+                        const awayScore = away.score !== null ? away.score : '0';
+                        const homeScore = home.score !== null ? home.score : '0';
+
                         scoresHtml += `
                             <div class="score-item">
                                 <strong>${away.team.displayName} @ ${home.team.displayName}</strong>
-                                <span>Score: ${away.score} - ${home.score}</span>
+                                <span>Score: ${awayScore} - ${homeScore}</span>
                                 <span>Status: ${status}</span>
                             </div>
                         `;
@@ -283,12 +288,12 @@
                     scoresDisplay.innerHTML = scoresHtml;
 
                 } catch (error) {
-                    scoresDisplay.innerHTML = `<p class="text-center text-red-500">Error fetching scores: ${error.message}. Please try again later.</p>`;
+                    scoresDisplay.innerHTML = `<p class="text-center text-red-500">Error fetching scores: ${error.message}. Please check your internet connection.</p>`;
                     console.error("Error fetching live scores:", error);
                 }
             };
 
-            // Initial fetch of scores
+            // Initial fetch of scores when the page loads
             getLiveScores();
 
             // Set up autorefresh for live scores every 30 seconds (30000 milliseconds)
