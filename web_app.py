@@ -68,6 +68,7 @@ def get_scores():
         return None
 
 if show_ticker:
+    st_autorefresh(interval=30_000, key="tickerrefresh")  # Refreshes every 30 seconds
     try:
         from streamlit_autorefresh import st_autorefresh
         st_autorefresh(interval=30_000, key="tickerrefresh")
