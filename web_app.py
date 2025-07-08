@@ -1,21 +1,13 @@
-import streamlit as st 
+import streamlit as st
 from MLBDeepDive import find_team, find_players
-from LiveScores import datetime 
+from LiveScores import datetime
 import requests
-from streamlit_autorefresh import st_autorefresh
+from streamlit_autorefresh import st_autorefresh  # <-- NEW IMPORT
 
-# --- PAGE CONFIG ---
-st.set_page_config(
-    page_title="MLB Stats Finder",
-    page_icon="⚾",
-    layout="centered",
-)
-
-# --- SIDEBAR: MLB ADVANCED STATS ---
+# --- Sidebar advanced stats (leave your real logic here) ---
 def get_advanced_stats(player_name):
-    # Implement your real advanced stat fetching logic here
-    # Remove or replace this function if not needed
-    return None  # Remove this line after implementing
+    # Replace with your actual logic.
+    return None
 
 st.sidebar.header("MLB Advanced Stats")
 adv_player = st.sidebar.text_input(
@@ -23,7 +15,6 @@ adv_player = st.sidebar.text_input(
     placeholder="e.g. Mookie Betts",
     key="adv_stats_player"
 )
-
 if adv_player:
     with st.sidebar:
         with st.spinner("Fetching advanced stats..."):
@@ -37,14 +28,14 @@ if adv_player:
 else:
     st.sidebar.markdown("Enter a player name to view advanced stats such as OPS, WAR, WHIP, and more.")
 
-# --- SIDEBAR: LIVE SCORE TICKER TOGGLE ---
+# --- Sidebar: Live Score Ticker toggle ---
 show_ticker = st.sidebar.checkbox("Show Live Score Ticker")
 
-# --- MAIN HEADER ---
+# --- Main Title and UI ---
 st.title("⚾ MLB Stats Finder")
 st.write("Search for information about your favorite MLB teams and players.")
 
-# --- LIVE SCORE TICKER ---
+# --- Live Score Ticker with autorefresh ---
 def get_scores():
     url = "http://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard"
     try:
@@ -68,12 +59,7 @@ def get_scores():
         return None
 
 if show_ticker:
-    st_autorefresh(interval=30_000, key="tickerrefresh")  # Refreshes every 30 seconds
-    try:
-        from streamlit_autorefresh import st_autorefresh
-        st_autorefresh(interval=30_000, key="tickerrefresh")
-    except ImportError:
-        st.info("Install `streamlit-autorefresh` for auto refresh.")
+    st_autorefresh(interval=30_000, key="tickerrefresh")  # <-- THIS LINE DOES THE AUTO REFRESH
     st.subheader("MLB Live Score Ticker")
     scores = get_scores()
     if scores is None:
@@ -84,7 +70,7 @@ if show_ticker:
         for s in scores:
             st.write(f"**{s['matchup']}**: {s['score']} ({s['status']})")
 
-# --- MAIN SEARCH UI ---
+# --- Main Search UI ---
 search_type = st.radio(
     "What do you want to search for?",
     ('Team', 'Player'),
