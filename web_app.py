@@ -3,18 +3,18 @@ from MLBDeepDive import find_team, find_players
 from LiveScores import datetime
 import requests
 
-# --- Sidebar: MLB Advanced Stats ---
+# --- PAGE CONFIG ---
+st.set_page_config(
+    page_title="MLB Stats Finder",
+    page_icon="⚾",
+    layout="centered",
+)
+
+# --- SIDEBAR: MLB ADVANCED STATS ---
 def get_advanced_stats(player_name):
-    # Replace with your real stat-fetching logic
-    dummy_stats = {
-        "OPS": ".965",
-        "WAR": "6.8",
-        "WHIP": "1.05",
-        "ERA+": "143",
-        "wRC+": "175",
-        "FIP": "2.89"
-    }
-    return dummy_stats
+    # Implement your real advanced stat fetching logic here
+    # Remove or replace this function if not needed
+    return None  # Remove this line after implementing
 
 st.sidebar.header("MLB Advanced Stats")
 adv_player = st.sidebar.text_input(
@@ -36,44 +36,53 @@ if adv_player:
 else:
     st.sidebar.markdown("Enter a player name to view advanced stats such as OPS, WAR, WHIP, and more.")
 
-# --- Live Score Ticker ---
-from streamlit_autorefresh import st_autorefresh
-
+# --- SIDEBAR: LIVE SCORE TICKER TOGGLE ---
 show_ticker = st.sidebar.checkbox("Show Live Score Ticker")
 
+# --- MAIN HEADER ---
+st.title("⚾ MLB Stats Finder")
+st.write("Search for information about your favorite MLB teams and players.")
+
+# --- LIVE SCORE TICKER ---
 def get_scores():
     url = "http://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard"
-    response = requests.get(url)
-    data = response.json()
-    games = data.get('events', [])
-    scores = []
-    for game in games:
-        competition = game['competitions'][0]
-        status = competition['status']['type']['description']
-        teams = competition['competitors']
-        home = next(team for team in teams if team['homeAway'] == 'home')
-        away = next(team for team in teams if team['homeAway'] == 'away')
-        scores.append({
-            "matchup": f"{away['team']['displayName']} @ {home['team']['displayName']}",
-            "score": f"{away['score']} - {home['score']}",
-            "status": status
-        })
-    return scores
+    try:
+        response = requests.get(url, timeout=7)
+        data = response.json()
+        games = data.get('events', [])
+        scores = []
+        for game in games:
+            competition = game['competitions'][0]
+            status = competition['status']['type']['description']
+            teams = competition['competitors']
+            home = next(team for team in teams if team['homeAway'] == 'home')
+            away = next(team for team in teams if team['homeAway'] == 'away')
+            scores.append({
+                "matchup": f"{away['team']['displayName']} @ {home['team']['displayName']}",
+                "score": f"{away['score']} - {home['score']}",
+                "status": status
+            })
+        return scores
+    except Exception:
+        return None
 
 if show_ticker:
-    st_autorefresh(interval=30_000, key="tickerrefresh")  # Auto-refresh every 30s
+    try:
+        from streamlit_autorefresh import st_autorefresh
+        st_autorefresh(interval=30_000, key="tickerrefresh")
+    except ImportError:
+        st.info("Install `streamlit-autorefresh` for auto refresh.")
     st.subheader("MLB Live Score Ticker")
     scores = get_scores()
-    if not scores:
+    if scores is None:
+        st.warning("Could not fetch live scores at this time.")
+    elif not scores:
         st.write("No games found.")
     else:
         for s in scores:
             st.write(f"**{s['matchup']}**: {s['score']} ({s['status']})")
 
-# --- Main Title and UI ---
-st.title("⚾ MLB Stats Finder")
-st.write("Search for information about your favorite MLB teams and players.")
-
+# --- MAIN SEARCH UI ---
 search_type = st.radio(
     "What do you want to search for?",
     ('Team', 'Player'),
