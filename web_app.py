@@ -16,7 +16,6 @@
             padding: 0;
             display: flex;
             justify-content: center;
-            min-height: 100vh;
         }
         .container {
             background-color: #ffffff;
