@@ -2,6 +2,8 @@ import streamlit as st
 from MLBDeepDive import find_team, find_players
 from LiveScores import datetime
 import requests
+pip install streamlit-autorefresh
+from streamlit_autorefresh import st_autorefresh 
 
 # --- PAGE CONFIG ---
 st.set_page_config(
@@ -137,5 +139,3 @@ elif search_type == 'Player':
                     st.markdown(f"- {player.get('fullName')} ({team_name})")
             else:
                 st.error(f"Player '{player_name}' not found. Please check the spelling.")
-
-pip install streamlit-autorefresh
