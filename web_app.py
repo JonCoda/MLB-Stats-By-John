@@ -1,3 +1,7 @@
+pkg install python
+pip install requests
+termux-setup-storage
+mlb_scores.py 
 import requests # This library helps us get information from websites
 
 def get_live_mlb_scores():
@@ -58,8 +62,3 @@ def get_live_mlb_scores():
 # This line calls the function to get and print the scores when the script runs.
 if __name__ == "__main__":
     get_live_mlb_scores()
-
-pkg install python
-pip install requests
-termux-setup-storage
-mlb_scores.py
