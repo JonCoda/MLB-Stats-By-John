@@ -1,132 +1,60 @@
 import streamlit as st
+from MLBDeepDive import find_team, find_players
+from LiveScores import datetime
 import requests
-from streamlit_autorefresh import st_autorefresh
 
-# --- Placeholder functions for MLBDeepDive (replace with your actual logic) ---
-# These functions are mocked to allow the Streamlit app to run.
-# In a real application, you would implement the actual data fetching logic.
+# --- PAGE CONFIG ---
+st.set_page_config(
+    page_title="MLB Stats Finder",
+    page_icon="⚾",
+    layout="centered",
+)
 
-def find_team(team_name):
-    """
-    Placeholder function to simulate finding team data.
-    Replace with actual MLB API calls.
-    """
-    teams_data = {
-        "boston red sox": {
-            "name": "Boston Red Sox",
-            "locationName": "Boston",
-            "division": {"name": "AL East"},
-            "league": {"name": "American League"},
-            "venue": {"name": "Fenway Park"},
-            "id": "111"
-        },
-        "new york yankees": {
-            "name": "New York Yankees",
-            "locationName": "New York",
-            "division": {"name": "AL East"},
-            "league": {"name": "American League"},
-            "venue": {"name": "Yankee Stadium"},
-            "id": "112"
-        }
-    }
-    return teams_data.get(team_name.lower())
-
-def find_players(player_name):
-    """
-    Placeholder function to simulate finding player data.
-    Replace with actual MLB API calls.
-    """
-    players_data = {
-        "shohei ohtani": [
-            {
-                "fullName": "Shohei Ohtani",
-                "primaryPosition": {"name": "Pitcher"},
-                "currentTeam": {"name": "Los Angeles Dodgers"},
-                "id": "660271"
-            }
-        ],
-        "mookie betts": [
-            {
-                "fullName": "Mookie Betts",
-                "primaryPosition": {"name": "Right Fielder"},
-                "currentTeam": {"name": "Los Angeles Dodgers"},
-                "id": "605141"
-            }
-        ],
-        "rafael devers": [
-            {
-                "fullName": "Rafael Devers",
-                "primaryPosition": {"name": "Third Baseman"},
-                "currentTeam": {"name": "Boston Red Sox"},
-                "id": "646240"
-            }
-        ]
-    }
-    # Simple search: check if player_name is a substring of any full name
-    found = [
-        player for name, player_list in players_data.items()
-        for player in player_list if player_name.lower() in name
-    ]
-    return found if found else []
-
+# --- SIDEBAR: MLB ADVANCED STATS ---
 def get_advanced_stats(player_name):
-    """
-    Placeholder function for fetching advanced stats.
-    Replace with your actual logic (e.g., scraping, API calls).
-    """
-    if player_name.lower() == "mookie betts":
-        return {
-            "OPS": 0.950,
-            "WAR": 3.5,
-            "WHIP": 0.00, # As a position player
-            "Batting Avg": 0.305
-        }
-    elif player_name.lower() == "shohei ohtani":
-        return {
-            "OPS": 1.010,
-            "WAR": 4.2,
-            "ERA": 2.80,
-            "WHIP": 1.05
-        }
-    else:
-        return None
+    # Replace this with your real stat-fetching logic
+    dummy_stats = {
+        "OPS": ".965",
+        "WAR": "6.8",
+        "WHIP": "1.05",
+        "ERA+": "143",
+        "wRC+": "175",
+        "FIP": "2.89"
+    }
+    return dummy_stats
 
-# --- Sidebar advanced stats ---
 st.sidebar.header("MLB Advanced Stats")
 adv_player = st.sidebar.text_input(
     "Enter player name for advanced stats:",
     placeholder="e.g. Mookie Betts",
     key="adv_stats_player"
 )
+
 if adv_player:
     with st.sidebar:
-        with st.spinner(f"Fetching advanced stats for {adv_player}..."):
+        with st.spinner("Fetching advanced stats..."):
             adv_stats = get_advanced_stats(adv_player)
         if adv_stats:
             st.success(f"Advanced Stats for {adv_player}")
             for stat_name, stat_value in adv_stats.items():
                 st.write(f"**{stat_name}:** {stat_value}")
         else:
-            st.warning(f"Player '{adv_player}' not found or stats unavailable.")
+            st.warning("Player not found or stats unavailable.")
 else:
     st.sidebar.markdown("Enter a player name to view advanced stats such as OPS, WAR, WHIP, and more.")
 
-# --- Sidebar: Live Score Ticker toggle ---
+# --- SIDEBAR: LIVE SCORE TICKER TOGGLE ---
 show_ticker = st.sidebar.checkbox("Show Live Score Ticker")
 
-# --- Main Title and UI ---
+# --- MAIN HEADER ---
 st.title("⚾ MLB Stats Finder")
 st.write("Search for information about your favorite MLB teams and players.")
 
-# --- Live Score Ticker with autorefresh ---
+# --- LIVE SCORE TICKER ---
 def get_scores():
-    """
-    Fetches live MLB scores from ESPN API.
-    """
     url = "http://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard"
     try:
         response = requests.get(url, timeout=7)
-        response.raise_for_status() # Raise an HTTPError for bad responses (4xx or 5xx)
         data = response.json()
         games = data.get('events', [])
         scores = []
@@ -142,27 +70,27 @@ def get_scores():
                 "status": status
             })
         return scores
-    except requests.exceptions.RequestException as e:
-        st.error(f"Error fetching live scores: {e}")
-        return None
     except Exception as e:
-        st.error(f"An unexpected error occurred: {e}")
         return None
 
 if show_ticker:
-    # This line triggers the autorefresh every 30 seconds (30,000 milliseconds)
-    st_autorefresh(interval=30_000, key="tickerrefresh")
+    # Use Streamlit's built-in autorefresh
+    try:
+        from streamlit_autorefresh import st_autorefresh
+        st_autorefresh(interval=30_000, key="tickerrefresh")  # 30 seconds
+    except ImportError:
+        st.info("Install `streamlit-autorefresh` for auto refresh.")
     st.subheader("MLB Live Score Ticker")
     scores = get_scores()
     if scores is None:
-        st.warning("Could not fetch live scores at this time. Please try again later.")
+        st.warning("Could not fetch live scores at this time.")
     elif not scores:
-        st.write("No live games found at the moment.")
+        st.write("No games found.")
     else:
         for s in scores:
             st.write(f"**{s['matchup']}**: {s['score']} ({s['status']})")
 
-# --- Main Search UI ---
+# --- MAIN SEARCH UI ---
 search_type = st.radio(
     "What do you want to search for?",
     ('Team', 'Player'),
@@ -182,10 +110,10 @@ if search_type == 'Team':
                 st.subheader("Team Information")
                 st.markdown(f"""
                 - **Location:** {found_team_data.get('locationName')}
-                - **Division:** {found_team_data.get('division', {}).get('name', 'N/A')}
-                - **League:** {found_team_data.get('league', {}).get('name', 'N/A')}
-                - **Venue:** {found_team_data.get('venue', {}).get('name', 'N/A')}
-                - **Team ID:** {found_team_data.get('id', 'N/A')}
+                - **Division:** {found_team_data.get('division', {}).get('name')}
+                - **League:** {found_team_data.get('league', {}).get('name')}
+                - **Venue:** {found_team_data.get('venue', {}).get('name')}
+                - **Team ID:** {found_team_data.get('id')}
                 """)
             else:
                 st.error(f"Team '{team_name}' not found. Please check the name and try again.")
@@ -207,7 +135,7 @@ elif search_type == 'Player':
                 st.markdown(f"""
                 - **Primary Position:** {player.get('primaryPosition', {}).get('name', 'N/A')}
                 - **Current Team:** {player.get('currentTeam', {}).get('name', 'N/A')}
-                - **Player ID:** {player.get('id', 'N/A')}
+                - **Player ID:** {player.get('id')}
                 """)
             elif len(players_found) > 1:
                 st.info(f"Found multiple players for '{player_name}'.")
@@ -217,4 +145,3 @@ elif search_type == 'Player':
                     st.markdown(f"- {player.get('fullName')} ({team_name})")
             else:
                 st.error(f"Player '{player_name}' not found. Please check the spelling.")
-
