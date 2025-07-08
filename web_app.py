@@ -1,4 +1,3 @@
-mlb_scores.py 
 import requests # This library helps us get information from websites
 
 def get_live_mlb_scores():
