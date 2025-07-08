@@ -1,0 +1,18 @@
+﻿import streamlit as st # This line imports the Streamlit library
+
+
+# This is the main title of your app
+st.title("My First Super Easy Streamlit App!")
+
+
+# This displays a simple text message
+st.write("Hello there! This is a very basic Streamlit application.")
+
+
+# This creates a button. When you click it, the message below appears.
+if st.button("Click Me!"):
+    st.write("You clicked the button! Great job!")
+
+
+# You can add more st.write() or other Streamlit commands here!
+st.write("This app is running on your computer and viewed in your browser.")
