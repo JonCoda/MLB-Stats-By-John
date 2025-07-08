@@ -1,4 +1,3 @@
-termux-setup-storage
 mlb_scores.py 
 import requests # This library helps us get information from websites
 
