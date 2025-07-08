@@ -1,7 +1,6 @@
 import streamlit as st
 from MLBDeepDive import find_team, find_players
 from LiveScores import datetime
-from streamlit_autorefresh import st_autorefresh
 import requests
 
 # --- PAGE CONFIG ---
