@@ -6,6 +6,6 @@ app = Flask(webapp)
 def index():
     return render_template('webapp')
     
-if __name__ == 'webapp':
+if __name__ == 'flask':
     # Use debug=False in a production environment
     app.run(debug=True, host='0.0.0.0')
