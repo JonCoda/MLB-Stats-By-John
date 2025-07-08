@@ -123,8 +123,3 @@ def general_info_api():
         ]
     }
     return jsonify(general_info)
-
-if __name__ == '__main__':
-    # This runs the Flask server on your computer, usually at http://127.0.0.1:5000/
-    app.run(debug=True) # debug=True allows for automatic reloading on code changes
-
