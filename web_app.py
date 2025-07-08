@@ -2,6 +2,8 @@ import streamlit as st
 from MLBDeepDive import find_team, find_players
 from LiveScores import datetime
 import requests
+pip install streamlit-autorefresh
+from streamlit_autorefresh import st_autorefresh
 from streamlit_autorefresh import st_autorefresh  # <-- NEW IMPORT
 
 # --- Sidebar advanced stats (leave your real logic here) ---
