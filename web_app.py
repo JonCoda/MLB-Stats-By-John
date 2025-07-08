@@ -4,6 +4,43 @@ from LiveScores import datetime
 import requests
 import time
 
+# --- Sidebar Advanced Stats Section ---
+import streamlit as st
+
+# Dummy example function; replace with your actual logic or API call.
+def get_advanced_stats(player_name):
+    # Example static data
+    dummy_stats = {
+        "OPS": ".965",
+        "WAR": "6.8",
+        "WHIP": "1.05",
+        "ERA+": "143",
+        "wRC+": "175",
+        "FIP": "2.89"
+    }
+    # You should fetch real data here in your actual code
+    return dummy_stats
+
+# Sidebar advanced stats UI
+st.sidebar.header("MLB Advanced Stats")
+adv_player = st.sidebar.text_input(
+    "Enter player name for advanced stats:",
+    placeholder="e.g. Mookie Betts",
+    key="adv_stats_player"
+)
+
+if adv_player:
+    with st.sidebar:
+        with st.spinner("Fetching advanced stats..."):
+            adv_stats = get_advanced_stats(adv_player)
+        if adv_stats:
+            st.success(f"Advanced Stats for {adv_player}")
+            for stat_name, stat_value in adv_stats.items():
+                st.write(f"**{stat_name}:** {stat_value}")
+        else:
+            st.warning("Player not found or stats unavailable.")
+else:
+    st.sidebar.markdown("Enter a player name to view advanced stats such as OPS, WAR, WHIP, and more.") 
 # --- Page Configuration ---
 st.set_page_config(
     page_title="MLB Stats Finder",
