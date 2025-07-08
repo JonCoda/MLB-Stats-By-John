@@ -71,4 +71,46 @@ elif search_type == 'Player':
                     st.markdown(f"- {player.get('fullName')} ({team_name})")
             else:
                 st.error(f"Player '{player_name}' not found. Please check the spelling.")
+# live_score_ticker.py
+
+import streamlit as st
+import requests
+import time
+
+st.title("MLB Live Score Ticker")
+
+def get_scores():
+    url = "http://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard"
+    response = requests.get(url)
+    data = response.json()
+    games = data.get('events', [])
+    scores = []
+    for game in games:
+        competition = game['competitions'][0]
+        status = competition['status']['type']['description']
+        teams = competition['competitors']
+        home = next(team for team in teams if team['homeAway'] == 'home')
+        away = next(team for team in teams if team['homeAway'] == 'away')
+        scores.append(
+            {
+                "matchup": f"{away['team']['displayName']} @ {home['team']['displayName']}",
+                "score": f"{away['score']} - {home['score']}",
+                "status": status
+            }
+        )
+    return scores
+
+# Auto-refresh every 30 seconds
+ticker_placeholder = st.empty()
+while True:
+    with ticker_placeholder.container():
+        st.subheader("Today's Games")
+        scores = get_scores()
+        if not scores:
+            st.write("No games found.")
+        else:
+            for s in scores:
+                st.write(f"**{s['matchup']}**: {s['score']} ({s['status']})")
+    time.sleep(30)
+    ticker_placeholder.empty()
 
