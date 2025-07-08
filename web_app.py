@@ -4,7 +4,7 @@ app = ('webapp.html')
 
 @app.route('/')
 def index():
-    return render_template(app) 
+    return render_template() 
     
 if app == 'webapp.html':
     # Use debug=False in a production environment
