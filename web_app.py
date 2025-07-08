@@ -2,27 +2,25 @@ import streamlit as st
 from MLBDeepDive import find_team, find_players
 from LiveScores import datetime
 import requests
-import time
 
-# --- Sidebar Advanced Stats Section ---
-import streamlit as st
+# --- Sidebar: MLB Advanced Stats ---
+def get_advanced_stats(player_name):
+    # Replace with your real stat-fetching logic
+    dummy_stats = {
+        "OPS": ".965",
+        "WAR": "6.8",
+        "WHIP": "1.05",
+        "ERA+": "143",
+        "wRC+": "175",
+        "FIP": "2.89"
+    }
+    return dummy_stats
 
-# --- Sidebar Advanced Stats Section ---
 st.sidebar.header("MLB Advanced Stats")
-adv_player = st.sidebar.text_input("Enter player name:", placeholder="e.g. Mookie Betts", key="adv_stats_player")
-
-if adv_player:
-    with st.sidebar:
-        with st.spinner("Fetching advanced stats..."):
-            adv_stats = get_advanced_stats(adv_player)
-        if adv_stats:
-            st.success(f"Advanced Stats for {adv_player}")
-            for stat_name, stat_value in adv_stats.items():
-                st.write(f"**{stat_name}:** {stat_value}")
-        else:
-            st.warning("Player not found or stats unavailable.")
-else:
-    st.sidebar.markdown("Enter a player name to view advanced stats such as OPS, WAR, WHIP, and more.")r"
+adv_player = st.sidebar.text_input(
+    "Enter player name for advanced stats:",
+    placeholder="e.g. Mookie Betts",
+    key="adv_stats_player"
 )
 
 if adv_player:
@@ -36,19 +34,11 @@ if adv_player:
         else:
             st.warning("Player not found or stats unavailable.")
 else:
-    st.sidebar.markdown("Enter a player name to view advanced stats such as OPS, WAR, WHIP, and more.") 
+    st.sidebar.markdown("Enter a player name to view advanced stats such as OPS, WAR, WHIP, and more.")
 
-# --- Page Configuration ---
-st.set_page_config(
-    page_title="MLB Stats Finder",
-    page_icon="⚾",
-    layout="centered",
-)
+# --- Live Score Ticker ---
+from streamlit_autorefresh import st_autorefresh
 
-st.title("⚾ MLB Stats Finder")
-st.write("Search for information about your favorite MLB teams and players.")
-
-# --- Sidebar for Live Score Ticker ---
 show_ticker = st.sidebar.checkbox("Show Live Score Ticker")
 
 def get_scores():
@@ -63,28 +53,27 @@ def get_scores():
         teams = competition['competitors']
         home = next(team for team in teams if team['homeAway'] == 'home')
         away = next(team for team in teams if team['homeAway'] == 'away')
-        scores.append(
-            {
-                "matchup": f"{away['team']['displayName']} @ {home['team']['displayName']}",
-                "score": f"{away['score']} - {home['score']}",
-                "status": status
-            }
-        )
+        scores.append({
+            "matchup": f"{away['team']['displayName']} @ {home['team']['displayName']}",
+            "score": f"{away['score']} - {home['score']}",
+            "status": status
+        })
     return scores
 
 if show_ticker:
-    st.subheader("MLB Live Score Ticker (auto-refreshes every 30s)")
+    st_autorefresh(interval=30_000, key="tickerrefresh")  # Auto-refresh every 30s
+    st.subheader("MLB Live Score Ticker")
     scores = get_scores()
     if not scores:
         st.write("No games found.")
     else:
         for s in scores:
             st.write(f"**{s['matchup']}**: {s['score']} ({s['status']})")
-    # Auto-refresh using Streamlit's built-in function
-    st.experimental_rerun()
-    time.sleep(30)
 
-# --- Search UI ---
+# --- Main Title and UI ---
+st.title("⚾ MLB Stats Finder")
+st.write("Search for information about your favorite MLB teams and players.")
+
 search_type = st.radio(
     "What do you want to search for?",
     ('Team', 'Player'),
@@ -92,7 +81,6 @@ search_type = st.radio(
 )
 
 if search_type == 'Team':
-    # --- Team Search ---
     team_name = st.text_input("Enter the MLB team name:", placeholder="e.g., Boston Red Sox")
     if st.button("Search for Team"):
         if not team_name:
@@ -114,7 +102,6 @@ if search_type == 'Team':
                 st.error(f"Team '{team_name}' not found. Please check the name and try again.")
 
 elif search_type == 'Player':
-    # --- Player Search ---
     player_name = st.text_input("Enter the MLB player name:", placeholder="e.g., Shohei Ohtani")
     if st.button("Search for Player"):
         if not player_name:
