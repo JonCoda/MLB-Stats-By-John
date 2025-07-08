@@ -2,6 +2,7 @@ import streamlit as st
 from MLBDeepDive import find_team, find_players
 from LiveScores import datetime
 import requests
+streamlit run mlb_app.py
 
 # --- PAGE CONFIG ---
 st.set_page_config(
