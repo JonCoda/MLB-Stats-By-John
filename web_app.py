@@ -59,3 +59,7 @@ def get_live_mlb_scores():
 if __name__ == "__main__":
     get_live_mlb_scores()
 
+pkg install python
+pip install requests
+termux-setup-storage
+mlb_scores.py
