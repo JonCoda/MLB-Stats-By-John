@@ -4,7 +4,7 @@ app = Flask(__name__)
 
 @app.route('/')
 def index():
-    return render_template(__main__) 
+    return render_template('web_app.html') 
     
 if __name__ == 'flask':
     # Use debug=False in a production environment
