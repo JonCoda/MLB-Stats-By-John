@@ -3,7 +3,7 @@ from flask import Flask, render_template
 # Initialize the Flask application
 # __name__ is a special Python variable that tells Flask where to look for resources
 # like templates and static files.
-app = Flask(__name__)
+app = Flask(webapp)
 
 # Define the route for the homepage ('/')
 # When someone visits the root URL of your web application, this function will run.
@@ -19,7 +19,7 @@ def index():
 # only runs when the script is executed directly (e.g., `python app.py`),
 # not when it's imported as a module into another script.
 # The condition should be '__main__', not 'flask'.
-if __name__ == '__main__':
+if __name__ == 'webapp':
     # app.run() starts the Flask development server.
     # debug=True: This enables debug mode, which provides helpful error messages
     #             and automatically reloads the server when you make code changes.
