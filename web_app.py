@@ -1,9 +1,9 @@
 import streamlit as st
 from MLBDeepDive import find_team, find_players
 from LiveScores import datetime
-import requests
 pip install streamlit-autorefresh
 from streamlit_autorefresh import st_autorefresh 
+import request
 
 # --- PAGE CONFIG ---
 st.set_page_config(
