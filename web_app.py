@@ -1,4 +1,3 @@
-pkg install python
 pip install requests
 termux-setup-storage
 mlb_scores.py 
