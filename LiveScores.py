@@ -1,89 +1,220 @@
-import datetime
+import streamlit as st
+import requests
+from streamlit_autorefresh import st_autorefresh
 
-class NewsArticle:
+# --- Placeholder functions for MLBDeepDive (replace with your actual logic) ---
+# These functions are mocked to allow the Streamlit app to run.
+# In a real application, you would implement the actual data fetching logic.
+
+def find_team(team_name):
     """
-    Represents a single news article with a title, source, date, and summary.
+    Placeholder function to simulate finding team data.
+    Replace with actual MLB API calls.
     """
-    def __init__(self, title: str, source: str, publication_date: datetime.date, summary: str, url: str):
-        """
-        Initializes a NewsArticle object.
+    teams_data = {
+        "boston red sox": {
+            "name": "Boston Red Sox",
+            "locationName": "Boston",
+            "division": {"name": "AL East"},
+            "league": {"name": "American League"},
+            "venue": {"name": "Fenway Park"},
+            "id": "111"
+        },
+        "new york yankees": {
+            "name": "New York Yankees",
+            "locationName": "New York",
+            "division": {"name": "AL East"},
+            "league": {"name": "American League"},
+            "venue": {"name": "Yankee Stadium"},
+            "id": "112"
+        }
+    }
+    return teams_data.get(team_name.lower())
 
-        Args:
-            title (str): The headline of the article.
-            source (str): The publisher of the article (e.g., MLB.com, ESPN).
-            publication_date (datetime.date): The date the article was published.
-            summary (str): A brief summary of the article's content.
-            url (str): A URL to the full article.
-        """
-        self.title = title
-        self.source = source
-        self.publication_date = publication_date
-        self.summary = summary
-        self.url = url
-
-    def __str__(self) -> str:
-        """
-        Returns a formatted string representation of the news article.
-        """
-        date_str = self.publication_date.strftime('%B %d, %Y')
-        return (
-            f"'{self.title}'\n"
-            f"  Source: {self.source}\n"
-            f"  Date: {date_str}\n"
-            f"  Summary: {self.summary}\n"
-            f"  Read more: {self.url}\n"
-        )
-
-def generate_mock_mlb_news() -> list[NewsArticle]:
+def find_players(player_name):
     """
-    Generates a list of mock MLB news articles for demonstration.
-
-    Returns:
-        list[NewsArticle]: A list of NewsArticle objects, sorted by most recent.
+    Placeholder function to simulate finding player data.
+    Replace with actual MLB API calls.
     """
-    articles = []
-    today = datetime.date.today()
+    players_data = {
+        "shohei ohtani": [
+            {
+                "fullName": "Shohei Ohtani",
+                "primaryPosition": {"name": "Pitcher"},
+                "currentTeam": {"name": "Los Angeles Dodgers"},
+                "id": "660271"
+            }
+        ],
+        "mookie betts": [
+            {
+                "fullName": "Mookie Betts",
+                "primaryPosition": {"name": "Right Fielder"},
+                "currentTeam": {"name": "Los Angeles Dodgers"},
+                "id": "605141"
+            }
+        ],
+        "rafael devers": [
+            {
+                "fullName": "Rafael Devers",
+                "primaryPosition": {"name": "Third Baseman"},
+                "currentTeam": {"name": "Boston Red Sox"},
+                "id": "646240"
+            }
+        ]
+    }
+    # Simple search: check if player_name is a substring of any full name
+    found = [
+        player for name, player_list in players_data.items()
+        for player in player_list if player_name.lower() in name
+    ]
+    return found if found else []
 
-    articles.append(NewsArticle(
-        title="Yankees Walk-Off Against Red Sox in 10th Inning Thriller",
-        source="ESPN",
-        publication_date=today,
-        summary="Aaron Judge's sacrifice fly in the bottom of the 10th inning gave the New York Yankees a dramatic 3-2 win over the Boston Red Sox.",
-        url="https://www.espn.com/mlb/story/_/id/0000000/yankees-walk-off-red-sox"
-    ))
-
-    articles.append(NewsArticle(
-        title="Shohei Ohtani Hits 2 Homers, Pitches 7 Shutout Innings in Angels' Win",
-        source="MLB.com",
-        publication_date=today - datetime.timedelta(days=1),
-        summary="Shohei Ohtani continued his MVP-caliber season with a dominant two-way performance, leading the Los Angeles Angels to a 5-0 victory.",
-        url="https://www.mlb.com/news/shohei-ohtani-dominant-vs-mariners"
-    ))
-
-    articles.append(NewsArticle(
-        title="Padres Acquire Star Pitcher at Trade Deadline",
-        source="The Athletic",
-        publication_date=today - datetime.timedelta(days=2),
-        summary="The San Diego Padres have made a major splash, acquiring an ace pitcher from an AL Central team in exchange for a package of top prospects.",
-        url="https://theathletic.com/mlb/news/padres-trade-ace-pitcher/"
-    ))
-
-    # Sort articles by publication date, newest first
-    return sorted(articles, key=lambda article: article.publication_date, reverse=True)
-
-def display_news_feed(articles: list[NewsArticle]):
+def get_advanced_stats(player_name):
     """
-    Prints the formatted news feed to the console.
+    Placeholder function for fetching advanced stats.
+    Replace with your actual logic (e.g., scraping, API calls).
     """
-    print("⚾" * 5 + "  MLB News Feed  " + "⚾" * 5)
-    if not articles:
-        print("\nNo news available at the moment.")
-        return
+    if player_name.lower() == "mookie betts":
+        return {
+            "OPS": 0.950,
+            "WAR": 3.5,
+            "WHIP": 0.00, # As a position player
+            "Batting Avg": 0.305
+        }
+    elif player_name.lower() == "shohei ohtani":
+        return {
+            "OPS": 1.010,
+            "WAR": 4.2,
+            "ERA": 2.80,
+            "WHIP": 1.05
+        }
+    else:
+        return None
 
-    for article in articles:
-        print("-" * 40)
-        print(article)
+# --- Sidebar advanced stats ---
+st.sidebar.header("MLB Advanced Stats")
+adv_player = st.sidebar.text_input(
+    "Enter player name for advanced stats:",
+    placeholder="e.g. Mookie Betts",
+    key="adv_stats_player"
+)
+if adv_player:
+    with st.sidebar:
+        with st.spinner(f"Fetching advanced stats for {adv_player}..."):
+            adv_stats = get_advanced_stats(adv_player)
+        if adv_stats:
+            st.success(f"Advanced Stats for {adv_player}")
+            for stat_name, stat_value in adv_stats.items():
+                st.write(f"**{stat_name}:** {stat_value}")
+        else:
+            st.warning(f"Player '{adv_player}' not found or stats unavailable.")
+else:
+    st.sidebar.markdown("Enter a player name to view advanced stats such as OPS, WAR, WHIP, and more.")
 
-if __name__ == "__main__":
-    mlb_articles = generate_mock_mlb_news()
-    display_news_feed(mlb_articles)
+# --- Sidebar: Live Score Ticker toggle ---
+show_ticker = st.sidebar.checkbox("Show Live Score Ticker")
+
+# --- Main Title and UI ---
+st.title("⚾ MLB Stats Finder")
+st.write("Search for information about your favorite MLB teams and players.")
+
+# --- Live Score Ticker with autorefresh ---
+def get_scores():
+    """
+    Fetches live MLB scores from ESPN API.
+    """
+    url = "http://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard"
+    try:
+        response = requests.get(url, timeout=7)
+        response.raise_for_status() # Raise an HTTPError for bad responses (4xx or 5xx)
+        data = response.json()
+        games = data.get('events', [])
+        scores = []
+        for game in games:
+            competition = game['competitions'][0]
+            status = competition['status']['type']['description']
+            teams = competition['competitors']
+            home = next(team for team in teams if team['homeAway'] == 'home')
+            away = next(team for team in teams if team['homeAway'] == 'away')
+            scores.append({
+                "matchup": f"{away['team']['displayName']} @ {home['team']['displayName']}",
+                "score": f"{away['score']} - {home['score']}",
+                "status": status
+            })
+        return scores
+    except requests.exceptions.RequestException as e:
+        st.error(f"Error fetching live scores: {e}")
+        return None
+    except Exception as e:
+        st.error(f"An unexpected error occurred: {e}")
+        return None
+
+if show_ticker:
+    # This line triggers the autorefresh every 30 seconds (30,000 milliseconds)
+    st_autorefresh(interval=30_000, key="tickerrefresh")
+    st.subheader("MLB Live Score Ticker")
+    scores = get_scores()
+    if scores is None:
+        st.warning("Could not fetch live scores at this time. Please try again later.")
+    elif not scores:
+        st.write("No live games found at the moment.")
+    else:
+        for s in scores:
+            st.write(f"**{s['matchup']}**: {s['score']} ({s['status']})")
+
+# --- Main Search UI ---
+search_type = st.radio(
+    "What do you want to search for?",
+    ('Team', 'Player'),
+    horizontal=True
+)
+
+if search_type == 'Team':
+    team_name = st.text_input("Enter the MLB team name:", placeholder="e.g., Boston Red Sox")
+    if st.button("Search for Team"):
+        if not team_name:
+            st.warning("Please enter a team name.")
+        else:
+            with st.spinner(f"Searching for '{team_name}'..."):
+                found_team_data = find_team(team_name)
+            if found_team_data:
+                st.success(f"Found information for **{found_team_data.get('name')}**!")
+                st.subheader("Team Information")
+                st.markdown(f"""
+                - **Location:** {found_team_data.get('locationName')}
+                - **Division:** {found_team_data.get('division', {}).get('name', 'N/A')}
+                - **League:** {found_team_data.get('league', {}).get('name', 'N/A')}
+                - **Venue:** {found_team_data.get('venue', {}).get('name', 'N/A')}
+                - **Team ID:** {found_team_data.get('id', 'N/A')}
+                """)
+            else:
+                st.error(f"Team '{team_name}' not found. Please check the name and try again.")
+
+elif search_type == 'Player':
+    player_name = st.text_input("Enter the MLB player name:", placeholder="e.g., Shohei Ohtani")
+    if st.button("Search for Player"):
+        if not player_name:
+            st.warning("Please enter a player name.")
+        else:
+            with st.spinner(f"Searching for '{player_name}'..."):
+                players_found = find_players(player_name)
+            if players_found is None:
+                st.error("An error occurred while fetching player data. The MLB API might be down.")
+            elif len(players_found) == 1:
+                player = players_found[0]
+                st.success(f"Found information for **{player.get('fullName')}**!")
+                st.subheader("Player Information")
+                st.markdown(f"""
+                - **Primary Position:** {player.get('primaryPosition', {}).get('name', 'N/A')}
+                - **Current Team:** {player.get('currentTeam', {}).get('name', 'N/A')}
+                - **Player ID:** {player.get('id', 'N/A')}
+                """)
+            elif len(players_found) > 1:
+                st.info(f"Found multiple players for '{player_name}'.")
+                st.write("Possible matches:")
+                for player in players_found:
+                    team_name = player.get('currentTeam', {}).get('name', 'N/A')
+                    st.markdown(f"- {player.get('fullName')} ({team_name})")
+            else:
+                st.error(f"Player '{player_name}' not found. Please check the spelling.")
+
