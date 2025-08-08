@@ -1,5 +1,4 @@
 import streamlit_app as st
-import pandas as pd
 import requests
 
 # --- API Section ---
