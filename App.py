@@ -1,13 +1,13 @@
 import requests
 
 class MLBApi:
-    BASE_URL = "https://statsapi.mlb.com/api/v1"
+    BASE_URL = "https://sportsdata.io/developers/api-documentation/mlb#standings"
 
     def __init__(self):
         # No API key required for statsapi.mlb.com
         pass
 
-    def get_team_standings(self, season="2024", league_ids="103,104"):
+    def get_team_standings(self, season="2025", league_ids="103,104"):
         url = f"{self.BASE_URL}/standings?leagueId={league_ids}&season={season}"
         try:
             response = requests.get(url)
