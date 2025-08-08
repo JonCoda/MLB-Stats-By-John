@@ -242,7 +242,7 @@ if __name__ == "__main__":
         if player_id_input.isdigit():
             display_player_stats(api, player_id_input)
         else:
-            print("\nInvalid input. Please enter a numeric player ID.")            print(f"{record['league']['name']}:")
+            print("\nInvalid input. Please enter a numeric player ID.")            
             for team in record['teamRecords']:
                 name = team['team']['name']
                 wins = team['wins']
