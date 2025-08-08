@@ -99,3 +99,39 @@ def main():
 
 if __name__ == "__main__":
     main()
+def show_division_standings(season="2024", division_filter=None):
+    """
+    Display MLB standings filtered by division.
+    """
+    data = get_standings(season)
+    if not data or 'records' not in data:
+        st.warning("Could not retrieve standings.")
+        return
+
+    divisions = [record['division']['name'] for record in data['records']]
+    selected_division = st.selectbox("Choose division", divisions) if not division_filter else division_filter
+
+    for record in data['records']:
+        if record['division']['name'] == selected_division:
+            st.subheader(f"{selected_division} Standings")
+            teams = [
+                {
+                    "Team": t['team']['name'],
+                    "W": t['wins'],
+                    "L": t['losses'],
+                    "Pct": t.get('winningPercentage', '.000'),
+                    "GB": t.get('gamesBack', '-'),
+                    "Streak": t.get('streak', {}).get('streakCode', '-')
+                }
+                for t in record.get('teamRecords', [])
+            ]
+            st.table(teams if teams else [{"Team": "No data"}])
+            break
+
+def division_standings_app():
+    st.title("MLB Division Standings")
+    season = st.sidebar.text_input("Season", "2024")
+    show_division_standings(season)
+
+if __name__ == "__main__":
+    division_standings_app()
