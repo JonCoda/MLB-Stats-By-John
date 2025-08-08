@@ -98,7 +98,7 @@ def main():
             show_player_stats(pid)
 
 if __name__ == "__main__":
-    main()    url = f"{BASE_URL}/people/{player_id}"
+    main()
     data = _make_request(url, f"Error fetching info for player ID '{player_id}'")
     return data['people'][0] if data and data.get('people') else None
 
