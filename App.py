@@ -1,6 +1,7 @@
 import streamlit as st
 import requests
 import datetime
+# Removed: import json (since json.dumps is no longer used for printing)
 
 # Base URL for the SportsData.io MLB API.
 # Remember to verify this URL and the specific endpoints with SportsData.io documentation.
@@ -13,7 +14,6 @@ def make_api_request(endpoint, error_msg):
     """
     Makes a GET request to the SportsData.io MLB API.
     Handles API key validation and common request errors.
-    Includes print statements for debugging the raw API response.
     """
     if API_KEY == "YOUR_API_KEY":
         st.error("Please replace 'YOUR_API_KEY' with your actual SportsData.io API key.")
@@ -21,31 +21,28 @@ def make_api_request(endpoint, error_msg):
 
     try:
         url = f"{MLB_API_BASE}/{endpoint}?key={API_KEY}"
-        st.info(f"Attempting API call to: {url}") # Info message for Streamlit UI
-        print(f"\n[DEBUG] Making API request to: {url}") # Print to terminal for debugging
+        st.info(f"Attempting API call to: {url}")
 
         response = requests.get(url)
         response.raise_for_status() # Raises HTTPError for bad responses (4xx or 5xx)
 
-        data = response.json()
-        print(f"[DEBUG] Raw API response for {endpoint}:")
-        print(json.dumps(data, indent=2)) # Pretty print JSON to terminal for inspection
+        data = response.json() # This line is essential for parsing the JSON from the API
         return data
     except requests.exceptions.HTTPError as e:
         st.error(f"{error_msg} (HTTP Error: {e.response.status_code}) - Verify API key and endpoint URL.")
-        print(f"[ERROR] HTTP Error for {endpoint}: {e.response.status_code} - {e.response.text}")
+        # Removed: print(f"[ERROR] HTTP Error for {endpoint}: {e.response.status_code} - {e.response.text}")
         return {}
     except requests.exceptions.ConnectionError:
         st.error(f"{error_msg} (Connection Error) - Check your internet connection.")
-        print(f"[ERROR] Connection Error for {endpoint}.")
+        # Removed: print(f"[ERROR] Connection Error for {endpoint}.")
         return {}
     except requests.exceptions.Timeout:
         st.error(f"{error_msg} (Timeout Error) - The request took too long.")
-        print(f"[ERROR] Timeout Error for {endpoint}.")
+        # Removed: print(f"[ERROR] Timeout Error for {endpoint}.")
         return {}
     except requests.exceptions.RequestException as e:
         st.error(f"{error_msg} (An unexpected error occurred: {e})")
-        print(f"[ERROR] Unexpected Request Exception for {endpoint}: {e}")
+        # Removed: print(f"[ERROR] Unexpected Request Exception for {endpoint}: {e}")
         return {}
 
 def get_current_season_year():
@@ -114,18 +111,11 @@ def render_team_standings(season):
     standings = get_team_standings(season=season)
 
     if not standings:
-        st.warning("Could not load team standings. Please ensure your API key is correct and active, and check terminal for errors.")
+        st.warning("Could not load team standings. Please ensure your API key is correct and active.")
         return
 
-    # IMPORTANT DEBUGGING STEP:
-    # Print the 'standings' variable here to see its exact structure from the API.
-    # Compare this to how the code tries to access keys like 'records', 'division', 'teamRecords'.
-    # For example, SportsData.io might return a direct list of team objects, not nested 'records'.
-    # print(f"\n[DEBUG] Standings data received for rendering (season {season}):")
-    # print(json.dumps(standings, indent=2))
-
     if 'records' not in standings or not standings['records']:
-        st.warning(f"No detailed standings data found for {season}. The API response structure might differ from expected. Check terminal for raw JSON.")
+        st.warning(f"No detailed standings data found for {season}. The API response structure might differ from expected.")
         return
 
     for record in standings['records']:
@@ -160,14 +150,6 @@ def render_player_stats(player_id, season):
 
     stats_data = get_player_stats(player_id, season)
     stats = stats_data if isinstance(stats_data, dict) else (stats_data[0] if isinstance(stats_data, list) and len(stats_data) > 0 else {})
-
-    # IMPORTANT DEBUGGING STEP:
-    # Print the 'stats_data' and 'stats' variables here to see their exact structure.
-    # Ensure keys like 'EarnedRunAverage', 'BattingAverage', etc. match what's in the API response.
-    # print(f"\n[DEBUG] Player stats data received for rendering (Player ID {player_id}, season {season}):")
-    # print(json.dumps(stats_data, indent=2))
-    # print(f"[DEBUG] Processed stats dictionary: {json.dumps(stats, indent=2)}")
-
 
     if stats:
         if pos_code == 'P' or info.get('Position', '').upper() == 'P':
