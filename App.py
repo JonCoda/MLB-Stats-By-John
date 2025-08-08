@@ -1,39 +1,168 @@
 import streamlit as st
 import requests
 
-API_BASE = "https://sportsdata.io/developers/api-documentation/mlb#standings"
+class MLBApi:
+    BASE_URL = "https://statsapi.mlb.com/api/v1"
+    def _make_request(self, url, error_message):
+        try:
+            response = requests.get(url)
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            st.error(f"{error_message}: {e}")
+            return None
+    @st.cache_data(ttl=3600)
+    def get_team_standings(self, season="2024", league_ids="103,104"):
+        url = f"{self.BASE_URL}/standings?leagueId={league_ids}&season={season}"
+        return self._make_request(url, f"Failed to fetch team standings for season {season}")
+    @st.cache_data(ttl=3600)
+    def get_player_stats(self, player_id, season="2024"):
+        url = f"{self.BASE_URL}/people/{player_id}/stats?stats=season&season={season}"
+        return self._make_request(url, f"Failed to fetch stats for player ID {player_id}")
+    @st.cache_data(ttl=86400)
+    def find_player(self, player_name):
+        url = f"{self.BASE_URL}/people/search?names={player_name}"
+        data = self._make_request(url, f"Error searching for player '{player_name}'")
+        return data.get('people', []) if data else None
+    @st.cache_data(ttl=86400)
+    def get_player_info(self, player_id):
+        url = f"{self.BASE_URL}/people/{player_id}"
+        data = self._make_request(url, f"Error fetching info for player ID '{player_id}'")
+        return data['people'][0] if data and data.get('people') else None
 
-def api_get(endpoint, error_msg):
-    """Unified GET request with error handling."""
+# --- Display Section (Streamlit Version) ---
+
+def display_team_standings(api, season="2024"):
+    """Fetches and displays team standings in a Streamlit-friendly format."""
+    data = api.get_team_standings(season=season)
+    if not data or 'records' not in data:
+        st.warning("Could not retrieve team standings at the moment.")
+        return
+
+    for record in data.get('records', []):
+        division_name = record.get('division', {}).get('name')
+        if not division_name:
+            continue # Skip divisions without a name
+
+        st.subheader(division_name)
+        team_records = record.get('teamRecords', [])
+        if not team_records:
+            st.write("No team records found for this division.")
+            continue
+
+        team_data = [{
+            "Team": team.get('team', {}).get('name', 'N/A'),
+            "W": team.get('wins', 0),
+            "L": team.get('losses', 0),
+            "Pct": team.get('winningPercentage', '.000'),
+            "GB": team.get('gamesBack', '-'),
+            "Streak": team.get('streak', {}).get('streakCode', '-')
+        } for team in team_records]
+
+        st.dataframe(team_data, hide_index=True, use_container_width=True)
+
+def display_player_stats(api, player_id, season="2024"):
+    """Fetches and displays player stats using Streamlit metrics."""
+    player_info = api.get_player_info(player_id)
+    if not player_info:
+        st.error(f"Could not retrieve information for player ID {player_id}.")
+        return
+
+    player_name = player_info.get('fullName', 'Unknown Player')
+    st.subheader(f"Season Stats for {player_name}")
+
+    data = api.get_player_stats(player_id, season=season)
+
+    # Safely access nested stat data
     try:
-        resp = requests.get(endpoint)
-        resp.raise_for_status()
-        return resp.json()
-    except Exception as e:
-        st.error(f"{error_msg}: {e}")
-        return None
+        stats = data['stats'][0]['splits'][0]['stat']
+    except (AttributeError, IndexError, KeyError, TypeError):
+        stats = None # Set stats to None if any part of the access fails
 
-@st.cache_data(ttl=3600)
-def get_standings(season="2024"):
-    url = f"{API_BASE}/standings?season={season}&leagueId=103,104"
-    # leagueId 103=AL, 104=NL; you may filter further if desired
-    return api_get(url, "Failed to fetch standings")
+    if stats:
+        col1, col2, col3, col4 = st.columns(4)
+        col1.metric("Batting Avg", stats.get('avg', 'N/A'))
+        col2.metric("Home Runs", stats.get('homeRuns', 'N/A'))
+        col3.metric("RBIs", stats.get('rbi', 'N/A'))
+        col4.metric("OPS", stats.get('ops', 'N/A'))
+    else:
+        st.info(f"No {season} stats found for {player_name} (ID: {player_id}). They may be a pitcher or have not played this season.")
 
-@st.cache_data(ttl=3600)
-def get_stats(pid, season="2024"):
-    url = f"{API_BASE}/people/{pid}/stats?stats=season&season={season}"
-    return api_get(url, "Failed to fetch player stats")
+def handle_player_search(api, player_input):
+    """
+    Handles the logic for searching a player by name or ID and updates session state.
+    Provides immediate feedback if an ID is invalid.
+    """
+    # Reset previous results
+    st.session_state.search_results = None
+    st.session_state.selected_player_id = None
 
-@st.cache_data(ttl=86400)
-def search_player(name):
-    url = f"{API_BASE}/people/search?names={name}"
-    data = api_get(url, f"Player search error: {name}")
-    return data.get('people', []) if data else []
+    if player_input.isdigit():
+        # Validate player ID immediately
+        if api.get_player_info(player_input):
+            st.session_state.selected_player_id = player_input
+        else:
+            st.error(f"No player found with ID {player_input}.")
+    else:
+        # Handle name search
+        results = api.find_player(player_input)
+        if not results:
+            st.warning(f"No players found matching '{player_input}'.")
+        elif len(results) == 1:
+            st.session_state.selected_player_id = results[0].get('id')
+        else:
+            st.session_state.search_results = results
 
-@st.cache_data(ttl=86400)
-def get_player(pid):
-    url = f"{API_BASE}/people/{pid}"
-    data = api_get(url, f"Player info error: {pid}")
+# --- Streamlit App Main Logic ---
+
+def main():
+    """Main function to run the MLB Stats Streamlit application."""
+    st.set_page_config(page_title="MLB Stats Viewer", layout="wide")
+    st.title("⚾ MLB Stats Viewer")
+
+    api = MLBApi()
+
+    # Initialize session state
+    if 'search_results' not in st.session_state:
+        st.session_state.search_results = None
+    if 'selected_player_id' not in st.session_state:
+        st.session_state.selected_player_id = None
+
+    # --- Team Standings Section ---
+    with st.expander("View 2024 Team Standings", expanded=True):
+        display_team_standings(api)
+
+    st.divider()
+
+    # --- Player Search Section ---
+    st.header("Player Stat Lookup")
+    with st.form(key='player_search_form'):
+        player_input = st.text_input("Enter a player name or ID (e.g., 'Aaron Judge', '660271')")
+        submit_button = st.form_submit_button(label='Search')
+
+    if submit_button and player_input:
+        handle_player_search(api, player_input)
+
+    # --- Display Logic for Search Results ---
+    # This logic runs after the search is handled and the state is updated.
+    if st.session_state.search_results:
+        st.subheader("Multiple players found. Please choose one:")
+        player_options = {
+            f"{p.get('fullName', 'N/A')} ({p.get('primaryPosition', {}).get('abbreviation', 'N/A')}, {p.get('currentTeam', {}).get('name', 'N/A')})": p.get('id')
+            for p in st.session_state.search_results
+        }
+        # When a user selects a player, we update the state and rerun the app
+        # to immediately show the selected player's stats.
+        selected_option = st.radio("Select a player:", options=player_options.keys(), index=None, key="player_choice")
+        if selected_option:
+            st.session_state.selected_player_id = player_options[selected_option]
+            st.session_state.search_results = None
+            st.rerun()
+    elif st.session_state.selected_player_id:
+        display_player_stats(api, st.session_state.selected_player_id)
+
+if __name__ == "__main__":
+    main()
     return (data.get('people') or [None])[0]
 
 def show_standings(season="2024"):
