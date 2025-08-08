@@ -122,7 +122,7 @@ if __name__ == "__main__":
 
         if player_id_to_fetch:
             display_player_stats(api, player_id_to_fetch)       
-            try:
+        try:
             response = requests.get(url)
             response.raise_for_status()
             data = response.json()
