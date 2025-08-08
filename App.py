@@ -5,7 +5,7 @@ import datetime
 # Base URL for the SportsData.io MLB API
 # Note: The original link provided in the comments was for API documentation.
 # You'll need the actual base URL for the API endpoints, which typically looks like this:
-MLB_API_BASE = "https://api.sportsdata.io/v3/mlb/scores/json" # This is a common pattern, verify with SportsData.io documentation
+MLB_API_BASE = "https://api.sportsdata.io/v3/mlb/scores" # This is a common pattern, verify with SportsData.io documentation
 # Replace "YOUR_API_KEY" with your actual SportsData.io subscription key.
 API_KEY = "3031838cee374a47a9ccac67652ae731"
 
