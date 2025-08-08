@@ -1,5 +1,6 @@
 import streamlit as st
 import requests
+import datetime
 
 MLB_API_BASE = "https://statsapi.mlb.com/api/v1"
 
@@ -13,13 +14,24 @@ def make_api_request(endpoint, error_message):
         st.error(f"{error_message}: {e}")
         return None
 
+def get_current_season_year():
+    # Try to get current season from the MLB API; fallback to current year
+    endpoint = "seasons/current"
+    data = make_api_request(endpoint, "Couldn't fetch current MLB season.")
+    if data and 'seasonId' in data:
+        try:
+            return int(data['seasonId'])
+        except Exception:
+            pass
+    return datetime.datetime.now().year
+
 @st.cache_data(ttl=3600)
-def get_team_standings(season="2024", league_ids="103,104"):
+def get_team_standings(season, league_ids="103,104"):
     endpoint = f"standings?leagueId={league_ids}&season={season}"
     return make_api_request(endpoint, "Couldn't fetch team standings.")
 
 @st.cache_data(ttl=3600)
-def get_player_stats(player_id, season="2024"):
+def get_player_stats(player_id, season):
     endpoint = f"people/{player_id}/stats?stats=season&season={season}"
     return make_api_request(endpoint, f"Couldn't fetch stats for player ID {player_id}.")
 
@@ -35,7 +47,7 @@ def get_player_info(player_id):
     data = make_api_request(endpoint, f"Error fetching info for player ID {player_id}.")
     return data['people'][0] if data and data.get('people') else None
 
-def render_team_standings(season="2024"):
+def render_team_standings(season):
     standings = get_team_standings(season=season)
     if not standings or 'records' not in standings:
         st.warning("No team standings available.")
@@ -57,7 +69,7 @@ def render_team_standings(season="2024"):
         ]
         st.dataframe(teams, hide_index=True, use_container_width=True)
 
-def render_player_stats(player_id, season="2024"):
+def render_player_stats(player_id, season):
     info = get_player_info(player_id)
     if not info:
         st.error(f"No info found for player ID {player_id}")
@@ -95,8 +107,8 @@ def main():
     st.set_page_config(page_title="MLB Stats Viewer", layout="wide")
     st.title("⚾ MLB Stats Viewer")
     
-    # Year selection
-    current_year = 2024
+    # Dynamically get the most current year
+    current_year = get_current_season_year()
     min_year = 2000
     years = list(range(current_year, min_year - 1, -1))
     season = st.selectbox("Choose MLB season year:", years, index=0)
