@@ -5,7 +5,6 @@ import datetime
 MLB_API_BASE = "https://sportsdata.io/developers/api-documentation/mlb#standings"
 
 def make_api_request(endpoint, error_message):
-url = f"{MLB_API_BASE}/{endpoint}"
 try:
 response = requests.get(url)
 response.raise_for_status()
