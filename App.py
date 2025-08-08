@@ -17,23 +17,23 @@ class MLBApi:
             st.error(f"Failed to parse API response. The data may not be in the expected format. Error: {e}")
             return None
 
-    @st.cache_data(ttl=3600)
+    @st.cache_data(ttl=3600, experimental_allow_widgets=True)
     def get_team_standings(self, season="2024", league_ids="103,104"):
         url = f"{self.BASE_URL}/standings?leagueId={league_ids}&season={season}"
         return self._make_request(url, f"Failed to fetch team standings for season {season}")
 
-    @st.cache_data(ttl=3600)
+    @st.cache_data(ttl=3600, experimental_allow_widgets=True)
     def get_player_stats(self, player_id, season="2024"):
         url = f"{self.BASE_URL}/people/{player_id}/stats?stats=season&season={season}"
         return self._make_request(url, f"Failed to fetch stats for player ID {player_id}")
 
-    @st.cache_data(ttl=86400)
+    @st.cache_data(ttl=86400, experimental_allow_widgets=True)
     def find_player(self, player_name):
         url = f"{self.BASE_URL}/people/search?names={player_name}"
         data = self._make_request(url, f"Error searching for player '{player_name}'")
         return data.get('people', []) if data else None
 
-    @st.cache_data(ttl=86400)
+    @st.cache_data(ttl=86400, experimental_allow_widgets=True)
     def get_player_info(self, player_id):
         url = f"{self.BASE_URL}/people/{player_id}"
         data = self._make_request(url, f"Error fetching info for player ID '{player_id}'")
