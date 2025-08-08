@@ -196,8 +196,9 @@ if __name__ == "__main__":
             else:
                 print("\nInvalid input. Please enter a numeric player ID.")
     except ValueError as e:
-        print(f"ERROR: {e}")        for record in data['records']:
-            print(f"{record['league']['name']}:")
+        print(f"ERROR: {e}")        
+            for record in data['records']:
+                print(f"{record['league']['name']}:")
             for team in record['teamRecords']:
                 name = team['team']['name']
                 wins = team['wins']
