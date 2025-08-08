@@ -9,7 +9,7 @@ MLB_API_BASE = "https://api.sportsdata.io/v3/mlb/scores/json"
 
 # IMPORTANT: Replace "YOUR_API_KEY" with your actual SportsData.io subscription key.
 # This is the most critical part for data retrieval!
-API_KEY = "YOUR_API_KEY"
+API_KEY = "3031838cee374a47a9ccac67652ae731"
 
 def make_api_request(endpoint, error_msg):
     """
