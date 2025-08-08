@@ -1,7 +1,7 @@
 import streamlit as st
 import requests
 
-BASE_URL = "https://statsapi.mlb.com/api/v1"
+BASE_URL = "https://sportsdata.io/developers/api-documentation/mlb#standings"
 
 def _make_request(url, error_message):
     """Helper function to make API requests and handle errors."""
