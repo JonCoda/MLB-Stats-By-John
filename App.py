@@ -1,33 +1,54 @@
 import streamlit as st
 import requests
 import datetime
+import json # This import is necessary for pretty-printing JSON to the console for debugging
 
 # Base URL for the SportsData.io MLB API.
 # IMPORTANT: Verify this URL and specific endpoints with SportsData.io documentation.
 MLB_API_BASE = "https://api.sportsdata.io/v3/mlb/scores/json"
 
 # IMPORTANT: Replace "YOUR_API_KEY" with your actual SportsData.io subscription key.
+# This is the most critical part for data retrieval!
 API_KEY = "3031838cee374a47a9ccac67652ae731"
 
 def make_api_request(endpoint, error_msg):
     """
     Makes a GET request to the SportsData.io MLB API, handling API key validation and errors.
+    Includes print statements to help debug the raw API response.
     """
     if API_KEY == "YOUR_API_KEY":
         st.error("Please replace 'YOUR_API_KEY' with your actual SportsData.io API key to fetch data.")
+        print("[DEBUG] API_KEY is still the placeholder. No API call will be made.")
         return {}
 
     try:
         url = f"{MLB_API_BASE}/{endpoint}?key={API_KEY}"
         st.info(f"Fetching data from: {url.split('?')[0]}...") # Show base URL without API key for privacy
         
+        print(f"\n[DEBUG] Attempting API call to URL: {url}") # Print the full URL being requested
+
         response = requests.get(url)
         response.raise_for_status() # Raises HTTPError for bad responses (4xx or 5xx)
-        return response.json()
+
+        data = response.json() # This converts the JSON text into a Python dictionary/list
+        print(f"[DEBUG] Raw JSON response for endpoint '{endpoint}':")
+        print(json.dumps(data, indent=2)) # Pretty print the raw JSON for inspection
+        return data
+    except requests.exceptions.HTTPError as e:
+        st.error(f"{error_msg} - HTTP Error {e.response.status_code}. Check API key and endpoint URL.")
+        print(f"[ERROR] HTTP Error for '{endpoint}': {e.response.status_code} - Response Body: {e.response.text}")
+        return {}
+    except requests.exceptions.ConnectionError:
+        st.error(f"{error_msg} - Connection Error. Check your internet connection.")
+        print(f"[ERROR] Connection Error for '{endpoint}'.")
+        return {}
+    except requests.exceptions.Timeout:
+        st.error(f"{error_msg} - Timeout Error. The request took too long.")
+        print(f"[ERROR] Timeout Error for '{endpoint}'.")
+        return {}
     except requests.exceptions.RequestException as e:
-        st.error(f"{error_msg} - An error occurred: {e}")
-        if hasattr(e, 'response') and e.response is not None:
-            st.error(f"HTTP Status: {e.response.status_code}, Response: {e.response.text}")
+        st.error(f"{error_msg} - An unexpected error occurred: {e}")
+        print(f"[ERROR] Unexpected Request Exception for '{endpoint}': {e}")
         return {}
 
 def get_current_season_year():
@@ -75,8 +96,18 @@ def render_team_standings(season):
     
     standings = get_team_standings_data(season=season)
 
-    if not standings or 'records' not in standings or not standings['records']:
-        st.warning(f"No detailed standings data found for {season}. Please ensure your API key is correct and active, and verify the API response structure if issues persist.")
+    if not standings:
+        st.warning(f"No standings data received for {season}. Check your API key and terminal for errors.")
+        return
+
+    # Debugging: Print the standings data as it is passed to this function
+    print(f"\n[DEBUG] Standings data received by render_team_standings for season {season}:")
+    print(json.dumps(standings, indent=2))
+
+    # This part assumes a specific JSON structure from SportsData.io.
+    # If the API's response is different, this needs to be adjusted.
+    if 'records' not in standings or not standings['records']:
+        st.warning(f"Standings data for {season} is missing 'records' key or is empty. API response structure may differ from expected.")
         return
 
     for record in standings['records']:
@@ -86,7 +117,7 @@ def render_team_standings(season):
         teams_data = record.get('teamRecords', [])
         if not teams_data:
             st.info(f"No team records found for {division_name}.")
-            continue # Skip to next division if no teams
+            continue 
 
         teams_df = [
             {
@@ -119,11 +150,15 @@ def render_player_stats(player_id, season):
     if isinstance(stats, list) and len(stats) > 0:
         stats = stats[0]
     elif not isinstance(stats, dict):
-        stats = {} # Default to empty dict if not a dict or a list with items
+        stats = {} 
 
     if not stats:
         st.info(f"No stats found for {name} in {season}.")
         return
+    
+    # Debugging: Print the player stats data as it is passed to this function
+    print(f"\n[DEBUG] Player stats data received by render_player_stats for player {player_id}, season {season}:")
+    print(json.dumps(stats, indent=2))
 
     col1, col2, col3, col4 = st.columns(4)
     if pos_code == 'P' or info.get('Position', '').upper() == 'P': # Pitcher
@@ -153,7 +188,6 @@ def main():
         st.cache_data.clear()
         st.experimental_rerun()
 
-    # Initialize session state variables once
     st.session_state.setdefault('search_results', None)
     st.session_state.setdefault('selected_player_id', None)
     st.session_state.selected_season = season
@@ -189,12 +223,11 @@ def main():
             else:
                 st.session_state.search_results = results
 
-    # Logic to display search results or player stats
     if st.session_state.get('search_results'):
         st.subheader("Select a player:")
         player_opts = {
             f"{p.get('FullName', 'N/A')} ({p.get('PrimaryPosition', {}).get('Abbreviation', 'N/A')}, {p.get('Team', 'N/A')})": p.get('PlayerID')
-            for p in st.session_state.search_results if p.get('PlayerID') # Only include players with an ID
+            for p in st.session_state.search_results if p.get('PlayerID')
         }
 
         if player_opts:
@@ -202,10 +235,10 @@ def main():
             if choice:
                 st.session_state.selected_player_id = player_opts[choice]
                 st.session_state.search_results = None
-                st.experimental_rerun() # Rerun to display stats for the selected player
+                st.experimental_rerun()
         else:
             st.warning("No selectable players found in search results.")
-            st.session_state.search_results = None # Clear if no valid options
+            st.session_state.search_results = None
             
     elif st.session_state.get('selected_player_id'):
         render_player_stats(st.session_state.selected_player_id, season=season)
