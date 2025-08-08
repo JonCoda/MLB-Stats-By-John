@@ -1,5 +1,6 @@
 import streamlit as st
 import requests
+import json
 
 class MLBApi:
     BASE_URL = "https://statsapi.mlb.com/api/v1"
@@ -7,9 +8,12 @@ class MLBApi:
         try:
             response = requests.get(url)
             response.raise_for_status()
-            return response.json()
-        except Exception as e:
+            return json.loads(response.text)
+        except requests.exceptions.RequestException as e:
             st.error(f"{error_message}: {e}")
+            return None
+        except json.JSONDecodeError as e:
+            st.error(f"Failed to parse API response. The data may not be in the expected format. Error: {e}")
             return None
     @st.cache_data(ttl=3600)
     def get_team_standings(self, season="2024", league_ids="103,104"):
@@ -67,10 +71,11 @@ def display_player_stats(api, player_id, season="2024"):
     if not player_info:
         st.error(f"Could not retrieve information for player ID {player_id}.")
         return
-
+ 
     player_name = player_info.get('fullName', 'Unknown Player')
+    position = player_info.get('primaryPosition', {}).get('code', 'N/A')
     st.subheader(f"Season Stats for {player_name}")
-
+ 
     data = api.get_player_stats(player_id, season=season)
 
     # Safely access nested stat data
@@ -80,38 +85,23 @@ def display_player_stats(api, player_id, season="2024"):
         stats = None # Set stats to None if any part of the access fails
 
     if stats:
-        col1, col2, col3, col4 = st.columns(4)
-        col1.metric("Batting Avg", stats.get('avg', 'N/A'))
-        col2.metric("Home Runs", stats.get('homeRuns', 'N/A'))
-        col3.metric("RBIs", stats.get('rbi', 'N/A'))
-        col4.metric("OPS", stats.get('ops', 'N/A'))
-    else:
-        st.info(f"No {season} stats found for {player_name} (ID: {player_id}). They may be a pitcher or have not played this season.")
-
-def handle_player_search(api, player_input):
-    """
-    Handles the logic for searching a player by name or ID and updates session state.
-    Provides immediate feedback if an ID is invalid.
-    """
-    # Reset previous results
-    st.session_state.search_results = None
-    st.session_state.selected_player_id = None
-
-    if player_input.isdigit():
-        # Validate player ID immediately
-        if api.get_player_info(player_input):
-            st.session_state.selected_player_id = player_input
+        # Display Pitching stats if the player is a pitcher (Position Code '1')
+        if position == '1':
+            col1, col2, col3, col4 = st.columns(4)
+            win_loss = f"{stats.get('wins', 0)}-{stats.get('losses', 0)}"
+            col1.metric("ERA", stats.get('era', 'N/A'))
+            col2.metric("W-L", win_loss)
+            col3.metric("Strikeouts", stats.get('strikeOuts', 'N/A'))
+            col4.metric("WHIP", stats.get('whip', 'N/A'))
+        # Display Hitting stats for all other positions
         else:
-            st.error(f"No player found with ID {player_input}.")
+            col1, col2, col3, col4 = st.columns(4)
+            col1.metric("Batting Avg", stats.get('avg', 'N/A'))
+            col2.metric("Home Runs", stats.get('homeRuns', 'N/A'))
+            col3.metric("RBIs", stats.get('rbi', 'N/A'))
+            col4.metric("OPS", stats.get('ops', 'N/A'))
     else:
-        # Handle name search
-        results = api.find_player(player_input)
-        if not results:
-            st.warning(f"No players found matching '{player_input}'.")
-        elif len(results) == 1:
-            st.session_state.selected_player_id = results[0].get('id')
-        else:
-            st.session_state.search_results = results
+        st.info(f"No {season} stats found for {player_name} (ID: {player_id}). They may not have played this season.")
 
 # --- Streamlit App Main Logic ---
 
@@ -121,12 +111,6 @@ def main():
     st.title("⚾ MLB Stats Viewer")
 
     api = MLBApi()
-
-    # Initialize session state
-    if 'search_results' not in st.session_state:
-        st.session_state.search_results = None
-    if 'selected_player_id' not in st.session_state:
-        st.session_state.selected_player_id = None
 
     # --- Team Standings Section ---
     with st.expander("View 2024 Team Standings", expanded=True):
@@ -140,26 +124,42 @@ def main():
         player_input = st.text_input("Enter a player name or ID (e.g., 'Aaron Judge', '660271')")
         submit_button = st.form_submit_button(label='Search')
 
-    if submit_button and player_input:
-        handle_player_search(api, player_input)
+        if submit_button and player_input:
+            # Reset previous results and perform new search
+            st.session_state.search_results = None
+            st.session_state.selected_player_id = None
+
+            if player_input.isdigit():
+                if api.get_player_info(player_input):
+                    st.session_state.selected_player_id = player_input
+                else:
+                    st.error(f"No player found with ID {player_input}.")
+            else:
+                results = api.find_player(player_input)
+                if not results:
+                    st.warning(f"No players found matching '{player_input}'.")
+                elif len(results) == 1:
+                    st.session_state.selected_player_id = results[0].get('id')
+                else:
+                    st.session_state.search_results = results
 
     # --- Display Logic for Search Results ---
-    # This logic runs after the search is handled and the state is updated.
-    if st.session_state.search_results:
+    # Use .get() to safely access state that may not be initialized
+    if st.session_state.get('search_results'):
         st.subheader("Multiple players found. Please choose one:")
         player_options = {
             f"{p.get('fullName', 'N/A')} ({p.get('primaryPosition', {}).get('abbreviation', 'N/A')}, {p.get('currentTeam', {}).get('name', 'N/A')})": p.get('id')
-            for p in st.session_state.search_results
+            for p in st.session_state.get('search_results', [])
         }
         # When a user selects a player, we update the state and rerun the app
         # to immediately show the selected player's stats.
         selected_option = st.radio("Select a player:", options=player_options.keys(), index=None, key="player_choice")
         if selected_option:
             st.session_state.selected_player_id = player_options[selected_option]
-            st.session_state.search_results = None
+            st.session_state.search_results = None # Clear results after selection
             st.rerun()
-    elif st.session_state.selected_player_id:
-        display_player_stats(api, st.session_state.selected_player_id)
+    elif st.session_state.get('selected_player_id'):
+        display_player_stats(api, st.session_state.get('selected_player_id'))
 
 if __name__ == "__main__":
     main()
