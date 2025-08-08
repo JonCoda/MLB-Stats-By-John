@@ -1,7 +1,6 @@
 import streamlit as st
 import requests
 import datetime
-import json # Import json for pretty printing
 
 # Base URL for the SportsData.io MLB API.
 # Remember to verify this URL and the specific endpoints with SportsData.io documentation.
