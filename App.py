@@ -97,8 +97,6 @@ def main():
                     pid = st.selectbox("Players", results, format_func=lambda p: f"{p['fullName']} ({p['id']})")['id']
             show_player_stats(pid)
 
-if __name__ == "__main__":
-    main()
 def show_division_standings(season="2024", division_filter=None):
     """
     Display MLB standings filtered by division.
@@ -135,3 +133,7 @@ def division_standings_app():
 
 if __name__ == "__main__":
     division_standings_app()
+
+if __name__ == "__main__":
+    main()
+    
