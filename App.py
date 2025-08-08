@@ -3,38 +3,71 @@ import requests
 
 
 class MLBApi:
-    BASE_URL = "https://api.com/mlb"
-    
-    def __init__(self, api_key=None):
-        self.api_key = 'ba48316d0bc6c7d57e7415942bcb70b0' # Use the provided API key
-    
-    def get_headers(self):
-        headers = {}
-        if self.api_key:
-            headers['Authorization'] = f'Bearer {self.api_key}'  # Adjust header name if needed
-        return headers
-    
-    def get_team_standings(self, season="2024"):
-        url = f"{self.BASE_URL}/teams/standings?season={season}"
-        response = requests.get(url, headers=self.get_headers())
-        if response.status_code == 200:
+    BASE_URL = "https://v1.baseball.api-sports.io."
+
+    def __init__(self):'ba48316d0bc6c7d57e7415942bcb70b0'
+        # API key is not needed for this public API
+
+    def get_team_standings(self, season="2024", league_ids="103,104"):
+        url = f"{self.BASE_URL}/standings?leagueId={league_ids}&season={season}"
+        try:
+            response = requests.get(url)
+            response.raise_for_status()  # Raise an exception for bad status codes (4xx or 5xx)
             return response.json()
-        else:
-            print("Failed to fetch team standings from api.com")
+        except requests.exceptions.RequestException as e:
+            print(f"Failed to fetch team standings: {e}")
             return None
-    
+
     def get_player_stats(self, player_id, season="2024"):
-        url = f"{self.BASE_URL}/players/{player_id}/stats?season={season}"
-        response = requests.get(url, headers=self.get_headers())
-        if response.status_code == 200:
+        url = f"{self.BASE_URL}/people/{player_id}/stats?stats=season&season={season}"
+        try:
+            response = requests.get(url)
+            response.raise_for_status()
             return response.json()
-        else:
-            print(f"No stats found for player ID {player_id} (season {season}).")
+        except requests.exceptions.RequestException as e:
+            print(f"Failed to fetch stats for player ID {player_id} (season {season}): {e}")
             return None
-    
+
 # Display Section
 def display_team_standings(api, season="2024"):
     data = api.get_team_standings(season)
+    if data and 'records' in data:
+        print(f"MLB Team Standings ({season}):\n")
+        for record in data['records']:
+            print(f"{record['league']['name']}:")
+            for team in record['teamRecords']:
+                name = team['team']['name']
+                wins = team['wins']
+                losses = team['losses']
+                pct = team['winningPercentage']
+                print(f"  {name}: {wins}-{losses} ({pct})")
+            print()
+    else:
+        print("Could not retrieve team standings.")
+
+def display_player_stats(api, player_id, season="2024"):
+    data = api.get_player_stats(player_id, season)
+    if data and data.get('stats'):
+        try:
+            stats = data['stats'][0]['splits'][0]['stat']
+            print(f"Player ID {player_id} Stats ({season}):")
+            print(f"  AVG: {stats.get('avg', 'N/A')}")
+            print(f"  HR: {stats.get('homeRuns', 'N/A')}")
+            print(f"  RBI: {stats.get('rbi', 'N/A')}")
+            print(f"  OPS: {stats.get('ops', 'N/A')}")
+            print()
+        except (IndexError, KeyError) as e:
+            print(f"Could not parse stats for player ID {player_id}. Unexpected data format: {e}")
+    else:
+        print(f"No stats found for player ID {player_id} (season {season}).\n")
+
+
+if __name__ == "__main__":
+    api = MLBApi()
+    display_team_standings(api)
+    print("Sample Player Stats:\n")
+    for pid in [660271, 605141, 547989]:
+        display_player_stats(api, pid)    data = api.get_team_standings(season)
     if data:
         print(f"MLB Team Standings ({season}):\n")
         for team in data.get('teams', []):
