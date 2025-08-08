@@ -3,10 +3,11 @@ import requests
 
 
 class MLBApi:
-    BASE_URL = "https://v1.baseball.api-sports.io."
+    BASE_URL = "https://https://v1.baseball.api-sports.io/"
 
-    def __init__(self):'ba48316d0bc6c7d57e7415942bcb70b0'
+    def __init__(self):
         # API key is not needed for this public API
+        pass
 
     def get_team_standings(self, season="2024", league_ids="103,104"):
         url = f"{self.BASE_URL}/standings?leagueId={league_ids}&season={season}"
@@ -35,6 +36,50 @@ def display_team_standings(api, season="2024"):
         print(f"MLB Team Standings ({season}):\n")
         for record in data['records']:
             print(f"{record['league']['name']}:")
+            for team in record['teamRecords']:
+                name = team['team']['name']
+                wins = team['wins']
+                losses = team['losses']
+                pct = team['winningPercentage']
+                print(f"  {name}: {wins}-{losses} ({pct})")
+            print()
+    else:
+        print("Could not retrieve team standings.")
+
+def display_player_stats(api, player_id, season="2024"):
+    data = api.get_player_stats(player_id, season)
+    if data and data.get('stats'):
+        try:
+            stats = data['stats'][0]['splits'][0]['stat']
+            print(f"Player ID {player_id} Stats ({season}):")
+            print(f"  AVG: {stats.get('avg', 'N/A')}")
+            print(f"  HR: {stats.get('homeRuns', 'N/A')}")
+            print(f"  RBI: {stats.get('rbi', 'N/A')}")
+            print(f"  OPS: {stats.get('ops', 'N/A')}")
+            print()
+        except (IndexError, KeyError) as e:
+            print(f"Could not parse stats for player ID {player_id}. Unexpected data format: {e}")
+    else:
+        print(f"No stats found for player ID {player_id} (season {season}).\n")
+
+
+if __name__ == "__main__":
+    api = MLBApi()
+    display_team_standings(api)
+
+    while True:
+        print("\nEnter a player ID to get their 2024 stats.")
+        print("(Example IDs: 660271 for Aaron Judge, 605141 for Shohei Ohtani)")
+        player_id_input = input("Or type 'exit' to quit: ")
+
+        if player_id_input.lower() in ['exit', 'q']:
+            print("\nExiting application. Goodbye!")
+            break
+
+        if player_id_input.isdigit():
+            display_player_stats(api, player_id_input)
+        else:
+            print("\nInvalid input. Please enter a numeric player ID.")            print(f"{record['league']['name']}:")
             for team in record['teamRecords']:
                 name = team['team']['name']
                 wins = team['wins']
