@@ -46,24 +46,29 @@ def display_team_standings(api, season="2024"):
         return
 
     for record in data.get('records', []):
-        division_name = record.get('division', {}).get('name')
-        if not division_name:
-            continue
+        division = record.get('division', {})
+        division_name = division.get('name', "Unknown Division")
         st.subheader(division_name)
+
         team_records = record.get('teamRecords', [])
         if not team_records:
             st.write("No team records found for this division.")
             continue
 
-        team_data = [{
-            "Team": team.get('team', {}).get('name', 'N/A'),
-            "W": team.get('wins', 0),
-            "L": team.get('losses', 0),
-            "Pct": team.get('winningPercentage', '.000'),
-            "GB": team.get('gamesBack', '-'),
-            "Streak": team.get('streak', {}).get('streakCode', '-')
-        } for team in team_records]
+        # Build the standings table robustly
+        team_data = []
+        for team in team_records:
+            team_info = team.get('team', {})
+            team_data.append({
+                "Team": team_info.get('name', 'N/A'),
+                "W": team.get('wins', 0),
+                "L": team.get('losses', 0),
+                "Pct": team.get('winningPercentage', '.000'),
+                "GB": team.get('gamesBack', '-'),
+                "Streak": team.get('streak', {}).get('streakCode', '-')
+            })
 
+        # Display using Streamlit's dataframe
         st.dataframe(team_data, hide_index=True, use_container_width=True)
 
 def display_player_stats(api, player_id, season="2024"):
