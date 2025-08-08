@@ -131,7 +131,6 @@ if __name__ == "__main__":
             response.raise_for_status()
         except requests.exceptions.RequestException as e:
             print(f"Failed to fetch stats for player ID {player_id} (season {season}): {e}")
-            return None
 
 # Display Section
 def display_team_standings(api, season="2024"):
