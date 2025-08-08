@@ -161,10 +161,6 @@ def main():
     elif st.session_state.selected_player_id:
         display_player_stats(api, st.session_state.selected_player_id)
 
-if __name__ == "__main__":
-    main()
-    return (data.get('people') or [None])[0]
-
 def show_standings(season="2024"):
     data = get_standings(season)
     if not data or 'records' not in data:
@@ -327,4 +323,3 @@ def division_standings_app():
 
 if __name__ == "__main__":
     main()
-    
