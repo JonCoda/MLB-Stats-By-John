@@ -1,40 +1,104 @@
 import streamlit as st
 import requests
 
-BASE_URL = "https://sportsdata.io/developers/api-documentation/mlb#standings"
+API_BASE = "https://sportsdata.io/developers/api-documentation/mlb#standings"
 
-def _make_request(url, error_message):
-    """Helper function to make API requests and handle errors."""
+def api_get(endpoint, error_msg):
+    """Unified GET request with error handling."""
     try:
-        response = requests.get(url)
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.RequestException as e:
-        st.error(f"{error_message}: {e}")
+        resp = requests.get(endpoint)
+        resp.raise_for_status()
+        return resp.json()
+    except Exception as e:
+        st.error(f"{error_msg}: {e}")
         return None
 
-# --- API Functions ---
+@st.cache_data(ttl=3600)
+def get_standings(season="2024", league="103,104"):
+    url = f"{API_BASE}/standings?leagueId={league}&season={season}"
+    return api_get(url, "Failed to fetch standings")
 
 @st.cache_data(ttl=3600)
-def get_team_standings(season="2024", league_ids="103,104"):
-    url = f"{BASE_URL}/standings?leagueId={league_ids}&season={season}"
-    return _make_request(url, f"Failed to fetch team standings for season {season}")
-
-@st.cache_data(ttl=3600)
-def get_player_stats(player_id, season="2024"):
-    url = f"{BASE_URL}/people/{player_id}/stats?stats=season&season={season}"
-    return _make_request(url, f"Failed to fetch stats for player ID {player_id}")
+def get_stats(pid, season="2024"):
+    url = f"{API_BASE}/people/{pid}/stats?stats=season&season={season}"
+    return api_get(url, "Failed to fetch player stats")
 
 @st.cache_data(ttl=86400)
-def find_player(player_name):
-    url = f"{BASE_URL}/people/search?names={player_name}"
-    data = _make_request(url, f"Error searching for player '{player_name}'")
-    return data.get('people', []) if data else None
+def search_player(name):
+    url = f"{API_BASE}/people/search?names={name}"
+    data = api_get(url, f"Player search error: {name}")
+    return data.get('people', []) if data else []
 
 @st.cache_data(ttl=86400)
-def get_player_info(player_id):
-    """Get basic info for a single player by ID."""
-    url = f"{BASE_URL}/people/{player_id}"
+def get_player(pid):
+    url = f"{API_BASE}/people/{pid}"
+    data = api_get(url, f"Player info error: {pid}")
+    return (data.get('people') or [None])[0]
+
+def show_standings(season="2024"):
+    data = get_standings(season)
+    if not data or 'records' not in data:
+        st.warning("Could not retrieve standings.")
+        return
+    for record in data['records']:
+        st.subheader(record['division']['name'])
+        teams = [
+            {
+                "Team": t['team']['name'],
+                "W": t['wins'],
+                "L": t['losses'],
+                "Pct": t.get('winningPercentage', '.000'),
+                "GB": t.get('gamesBack', '-'),
+                "Streak": t.get('streak', {}).get('streakCode', '-')
+            }
+            for t in record.get('teamRecords', [])
+        ]
+        st.table(teams if teams else [{"Team": "No data"}])
+
+def show_player_stats(pid, season="2024"):
+    info = get_player(pid)
+    if not info:
+        st.error(f"Could not retrieve player {pid}")
+        return
+    st.subheader(f"{info.get('fullName', 'Unknown')}: {season} Stats")
+    stats = get_stats(pid, season)
+    splits = (stats or {}).get('stats', [{}])[0].get('splits', [])
+    if splits:
+        s = splits[0]['stat']
+        cols = st.columns(4)
+        metrics = [("Batting Avg", s.get('avg')), ("Home Runs", s.get('homeRuns')), ("RBIs", s.get('rbi')), ("OPS", s.get('ops'))]
+        for col, (label, val) in zip(cols, metrics):
+            col.metric(label, val or 'N/A')
+    else:
+        st.info(f"No {season} stats for {info.get('fullName', '')}")
+
+def main():
+    st.title("MLB Stats")
+    menu = ["Team Standings", "Player Search"]
+    choice = st.sidebar.radio("Select View", menu)
+
+    if choice == "Team Standings":
+        season = st.sidebar.text_input("Season", "2024")
+        show_standings(season)
+    else:
+        name_or_id = st.text_input("Player Name or ID")
+        if name_or_id:
+            if name_or_id.isdigit():
+                pid = name_or_id
+            else:
+                results = search_player(name_or_id)
+                if not results:
+                    st.error("No matching players.")
+                    return
+                if len(results) == 1:
+                    pid = results[0]['id']
+                else:
+                    st.write("Select a player:")
+                    pid = st.selectbox("Players", results, format_func=lambda p: f"{p['fullName']} ({p['id']})")['id']
+            show_player_stats(pid)
+
+if __name__ == "__main__":
+    main()    url = f"{BASE_URL}/people/{player_id}"
     data = _make_request(url, f"Error fetching info for player ID '{player_id}'")
     return data['people'][0] if data and data.get('people') else None
 
