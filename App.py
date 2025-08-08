@@ -537,16 +537,3 @@ def display_player_stats(api, player_id, season="2024"):
         print(f"  RBI: {stats.get('rbi', 'N/A')}")
         print(f"  OPS: {stats.get('ops', 'N/A')}")
         print()
-    
-    
-if __name__ == "__main__":
-    # Input your API key here
-    api_key = "YOUR_API_KEY_HERE"
-    api = MLBApi(api_key=api_key)
-    display_team_standings(api)
-    print("Sample Player Stats:\n")
-    for pid in [660271, 605141, 547989]:
-        display_player_stats(api, pid)    # Example player IDs: 660271 (Aaron Judge), 605141 (Shohei Ohtani), 547989 (Mookie Betts)
-    print("Sample Player Stats:\n")
-    for pid in [660271, 605141, 547989]:
-        get_player_stats(pid)
