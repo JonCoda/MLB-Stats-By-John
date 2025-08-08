@@ -4,15 +4,16 @@ import datetime
 
 MLB_API_BASE = "https://sportsdata.io/developers/api-documentation/mlb#standings"
 
-def make_api_request(endpoint, error_message):
-    url = f"{MLB_API_BASE}/{endpoint}"
-    try:
-        response = requests.get(url)
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.RequestException as e:
-        st.error(f"{error_message}: {e}")
-        return None
+def get_current_season_year():
+    # Try to get current season from the MLB API; fallback to current year
+    endpoint = "seasons/current"
+    data = make_api_request(endpoint, "Couldn't fetch current MLB season.")
+    if data and 'seasonId' in data:
+        try:
+            return int(data['seasonId'])
+        except Exception:
+            pass
+    return datetime.datetime.now().year
         
 def make_api_request(endpoint, error_message):
     url = f"{MLB_API_BASE}/{endpoint}"
