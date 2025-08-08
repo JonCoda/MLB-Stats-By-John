@@ -1,40 +1,117 @@
+import streamlit as st
 import requests
 
 class MLBApi:
     BASE_URL = "https://statsapi.mlb.com/api/v1"
 
-    def __init__(self):
-        # If you use an API that requires a key, add it here (and use in headers)
-        self.api_key = None  # Set your API key if needed
+    def __init__(self, api_key=None):
+        self.api_key = api_key  # For APIs that require a key
 
     def get_team_standings(self, season="2024"):
-        # StatsAPI endpoint for standings (check docs if you use a different API)
         url = f"{self.BASE_URL}/standings?season={season}&leagueId=103,104"
         try:
             response = requests.get(url)
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as e:
-            print(f"Failed to fetch team standings for season {season}: {e}")
+            st.error(f"Failed to fetch team standings for season {season}: {e}")
             return None
 
     def get_player_stats(self, player_id, season="2024"):
-        # StatsAPI endpoint for player stats (season stats)
         url = f"{self.BASE_URL}/people/{player_id}/stats?stats=season&season={season}"
         try:
             response = requests.get(url)
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as e:
-            print(f"Failed to fetch stats for player ID {player_id} (season {season}): {e}")
+            st.error(f"Failed to fetch stats for player ID {player_id} (season {season}): {e}")
             return None
 
     def find_player(self, player_name):
-        # StatsAPI does not support search by name directly, but let's simulate
-        # Use the /search endpoint if your API supports; otherwise, fallback.
         url = f"{self.BASE_URL}/people/search?names={player_name}"
         try:
             response = requests.get(url)
+            response.raise_for_status()
+            data = response.json()
+            return data.get('people', [])
+        except requests.exceptions.RequestException as e:
+            st.error(f"Error searching for player '{player_name}': {e}")
+            return None
+
+def display_team_standings(api, season="2024"):
+    data = api.get_team_standings(season=season)
+    if data and 'records' in data:
+        st.header(f"MLB Team Standings ({season})")
+        for record in data['records']:
+            league = record.get('league', {})
+            league_name = league.get('name', str(league))
+            st.subheader(f"{league_name}")
+            standings = []
+            for team in record.get('teamRecords', []):
+                name = team.get('team', {}).get('name', 'Unknown')
+                wins = team.get('wins', 'N/A')
+                losses = team.get('losses', 'N/A')
+                pct = team.get('winningPercentage', 'N/A')
+                standings.append(f"{name}: {wins}-{losses} ({pct})")
+            st.write("\n".join(standings))
+    else:
+        st.warning("Could not retrieve team standings.")
+
+def display_player_stats(api, player_id, season="2024"):
+    data = api.get_player_stats(player_id, season=season)
+    if data and data.get('stats'):
+        try:
+            splits = data['stats'][0].get('splits', [])
+            if not splits:
+                st.warning(f"No stats found for player ID {player_id} (season {season}).")
+                return
+            stats = splits[0].get('stat', {})
+            st.markdown(f"**Player ID {player_id} Stats ({season}):**")
+            st.write(f"AVG: {stats.get('avg', 'N/A')}")
+            st.write(f"HR: {stats.get('homeRuns', 'N/A')}")
+            st.write(f"RBI: {stats.get('rbi', 'N/A')}")
+            st.write(f"OPS: {stats.get('ops', 'N/A')}")
+        except (IndexError, KeyError, TypeError) as e:
+            st.error(f"Could not parse stats for player ID {player_id}. Unexpected data format: {e}")
+    else:
+        st.warning(f"No stats found for player ID {player_id} (season {season}).")
+
+def main():
+    st.title("MLB Stats Explorer")
+
+    api = MLBApi()
+
+    st.sidebar.header("Options")
+    season = st.sidebar.text_input("Season", "2024")
+
+    expander = st.expander("Show Team Standings")
+    with expander:
+        if st.button("Fetch Team Standings"):
+            display_team_standings(api, season)
+
+    st.header("Player Stats Lookup")
+    player_input = st.text_input("Enter player name or ID", "")
+    if st.button("Search Player"):
+        if player_input.isdigit():
+            display_player_stats(api, player_input, season)
+        elif player_input:
+            players_found = api.find_player(player_input)
+            if not players_found:
+                st.warning(f"No players found matching '{player_input}'. Please try again.")
+            elif len(players_found) == 1:
+                player = players_found[0]
+                st.info(f"Found: {player.get('fullName', 'N/A')} (ID: {player.get('id', 'N/A')})")
+                display_player_stats(api, player.get('id'), season)
+            else:
+                st.write(f"Multiple players found for '{player_input}'. Please choose one:")
+                options = {f"{p.get('fullName', 'N/A')} ({p.get('primaryPosition', {}).get('abbreviation', 'N/A')}, {p.get('currentTeam', {}).get('name', 'N/A')})": p.get('id') for p in players_found}
+                selected_name = st.selectbox("Players", list(options.keys()))
+                if selected_name:
+                    selected_id = options[selected_name]
+                    display_player_stats(api, selected_id, season)
+
+if __name__ == "__main__":
+    main()            response = requests.get(url)
             response.raise_for_status()
             data = response.json()
             # Some APIs return 'people', others may return 'results'
