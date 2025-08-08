@@ -1,7 +1,7 @@
 import streamlit as st
 import requests
 
-API_BASE = "https://sportsdata.io/developers/api-documentation/mlb/standings?leagueId=103%2c104&season=2024s"
+API_BASE = "https://sportsdata.io/developers/api-documentation/mlb#standings"
 
 def api_get(endpoint, error_msg):
     """Unified GET request with error handling."""
