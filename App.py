@@ -99,8 +99,6 @@ def main():
 
 if __name__ == "__main__":
     main()
-    data = _make_request(url, f"Error fetching info for player ID '{player_id}'")
-    return data['people'][0] if data and data.get('people') else None
 
 # --- Display Section (Streamlit Version) ---
 
