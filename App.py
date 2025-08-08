@@ -94,13 +94,21 @@ def render_player_stats(player_id, season="2024"):
 def main():
     st.set_page_config(page_title="MLB Stats Viewer", layout="wide")
     st.title("⚾ MLB Stats Viewer")
+    
+    # Year selection
+    current_year = 2024
+    min_year = 2000
+    years = list(range(current_year, min_year - 1, -1))
+    season = st.selectbox("Choose MLB season year:", years, index=0)
 
     # Session state management
     search_results = st.session_state.get('search_results')
     selected_player = st.session_state.get('selected_player_id')
+    selected_season = st.session_state.get('selected_season', season)
+    st.session_state.selected_season = season
 
-    with st.expander("View 2024 Team Standings", expanded=True):
-        render_team_standings()
+    with st.expander(f"View {season} Team Standings", expanded=True):
+        render_team_standings(season=season)
 
     st.divider()
     st.header("Player Stat Lookup")
@@ -141,7 +149,7 @@ def main():
             st.session_state.search_results = None
             st.experimental_rerun()
     elif st.session_state.get('selected_player_id'):
-        render_player_stats(st.session_state.selected_player_id)
+        render_player_stats(st.session_state.selected_player_id, season=season)
 
 if __name__ == "__main__":
     main()
