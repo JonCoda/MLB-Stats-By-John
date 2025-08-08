@@ -121,7 +121,7 @@ if __name__ == "__main__":
                 print("Invalid input. Please enter a number.")
 
         if player_id_to_fetch:
-            display_player_stats(api, player_id_to_fetch)        url = f"{self.BASE_URL}/people/search?names={player_name}"
+            display_player_stats(api, player_id_to_fetch)        url = f"{BASE_URL}/people/search?names={player_name}"
         try:
             response = requests.get(url)
             response.raise_for_status()
