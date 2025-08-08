@@ -1,127 +1,94 @@
 import streamlit as st
 import requests
 import datetime
-# Removed: import json (since json.dumps is no longer used for printing)
 
 # Base URL for the SportsData.io MLB API.
-# Remember to verify this URL and the specific endpoints with SportsData.io documentation.
+# IMPORTANT: Verify this URL and specific endpoints with SportsData.io documentation.
 MLB_API_BASE = "https://api.sportsdata.io/v3/mlb/scores/json"
 
 # IMPORTANT: Replace "YOUR_API_KEY" with your actual SportsData.io subscription key.
-API_KEY = "3031838cee374a47a9ccac67652ae731" # <<<<<<<<<<<<< ENSURE YOUR REAL API KEY IS HERE
+API_KEY = "3031838cee374a47a9ccac67652ae731"
 
 def make_api_request(endpoint, error_msg):
     """
-    Makes a GET request to the SportsData.io MLB API.
-    Handles API key validation and common request errors.
+    Makes a GET request to the SportsData.io MLB API, handling API key validation and errors.
     """
     if API_KEY == "YOUR_API_KEY":
-        st.error("Please replace 'YOUR_API_KEY' with your actual SportsData.io API key.")
+        st.error("Please replace 'YOUR_API_KEY' with your actual SportsData.io API key to fetch data.")
         return {}
 
     try:
         url = f"{MLB_API_BASE}/{endpoint}?key={API_KEY}"
-        st.info(f"Attempting API call to: {url}")
-
+        st.info(f"Fetching data from: {url.split('?')[0]}...") # Show base URL without API key for privacy
+        
         response = requests.get(url)
         response.raise_for_status() # Raises HTTPError for bad responses (4xx or 5xx)
-
-        data = response.json() # This line is essential for parsing the JSON from the API
-        return data
-    except requests.exceptions.HTTPError as e:
-        st.error(f"{error_msg} (HTTP Error: {e.response.status_code}) - Verify API key and endpoint URL.")
-        # Removed: print(f"[ERROR] HTTP Error for {endpoint}: {e.response.status_code} - {e.response.text}")
-        return {}
-    except requests.exceptions.ConnectionError:
-        st.error(f"{error_msg} (Connection Error) - Check your internet connection.")
-        # Removed: print(f"[ERROR] Connection Error for {endpoint}.")
-        return {}
-    except requests.exceptions.Timeout:
-        st.error(f"{error_msg} (Timeout Error) - The request took too long.")
-        # Removed: print(f"[ERROR] Timeout Error for {endpoint}.")
-        return {}
+        return response.json()
     except requests.exceptions.RequestException as e:
-        st.error(f"{error_msg} (An unexpected error occurred: {e})")
-        # Removed: print(f"[ERROR] Unexpected Request Exception for {endpoint}: {e}")
+        st.error(f"{error_msg} - An error occurred: {e}")
+        if hasattr(e, 'response') and e.response is not None:
+            st.error(f"HTTP Status: {e.response.status_code}, Response: {e.response.text}")
         return {}
 
 def get_current_season_year():
     """
-    Determines the current MLB season year from the API, falling back to the calendar year.
-    Assumes 'CurrentSeason' endpoint returns a dict with a 'Season' key.
+    Determines the current MLB season year from the API or falls back to the calendar year.
     """
-    endpoint = "CurrentSeason"
-    data = make_api_request(endpoint, "Couldn't fetch current MLB season from API.")
-    if data and 'Season' in data:
+    data = make_api_request("CurrentSeason", "Couldn't fetch current MLB season from API.")
+    if data and isinstance(data, dict) and 'Season' in data:
         try:
             return int(data['Season'])
         except ValueError:
-            st.warning("Could not parse current season year from API response. Using current calendar year.")
+            st.warning("Could not parse current season year from API response.")
     st.info("Falling back to current calendar year as API did not provide current season.")
     return datetime.datetime.now().year
 
 @st.cache_data(ttl=3600)
-def get_team_standings(season):
-    """
-    Fetches team standings for a given season.
-    Assumes API endpoint is 'Standings/{season}'.
-    """
-    endpoint = f"Standings/{season}"
-    return make_api_request(endpoint, f"Couldn't fetch team standings for season {season}.")
+def get_team_standings_data(season):
+    """Fetches raw team standings data for a given season."""
+    return make_api_request(f"Standings/{season}", f"Couldn't fetch team standings for season {season}.")
 
 @st.cache_data(ttl=3600)
-def get_player_stats(player_id, season):
-    """
-    Fetches player statistics for a given player ID and season.
-    Assumes API endpoint is 'PlayerSeasonStatsByPlayerID/{player_id}/{season}'.
-    """
-    endpoint = f"PlayerSeasonStatsByPlayerID/{player_id}/{season}"
-    return make_api_request(endpoint, f"Couldn't fetch stats for player ID {player_id} in {season}.")
+def get_player_stats_data(player_id, season):
+    """Fetches raw player statistics data for a given player ID and season."""
+    return make_api_request(f"PlayerSeasonStatsByPlayerID/{player_id}/{season}", 
+                            f"Couldn't fetch stats for player ID {player_id} in {season}.")
 
 @st.cache_data(ttl=86400)
-def search_player(player_name):
-    """
-    Searches for players by name.
-    Assumes 'Players' endpoint returns all players, then filters client-side by 'FullName'.
-    """
-    endpoint = "Players"
-    data = make_api_request(endpoint, f"Error searching for player '{player_name}'.")
+def search_player_data(player_name):
+    """Searches for players by name and returns raw player data."""
+    data = make_api_request("Players", f"Error searching for player '{player_name}'.")
     if data and isinstance(data, list):
         return [p for p in data if player_name.lower() in p.get('FullName', '').lower()]
     return []
 
 @st.cache_data(ttl=86400)
-def get_player_info(player_id):
-    """
-    Fetches detailed information for a specific player by ID.
-    Assumes API endpoint is 'Player/{player_id}'.
-    """
-    endpoint = f"Player/{player_id}"
-    data = make_api_request(endpoint, f"Error fetching info for player ID {player_id}.")
-    if isinstance(data, dict):
-        return data
-    elif isinstance(data, list) and len(data) > 0:
-        return data[0]
-    return None
+def get_player_info_data(player_id):
+    """Fetches raw detailed information for a specific player by ID."""
+    data = make_api_request(f"Player/{player_id}", f"Error fetching info for player ID {player_id}.")
+    return data[0] if isinstance(data, list) and len(data) > 0 else (data if isinstance(data, dict) else None)
 
 def render_team_standings(season):
     """Renders MLB team standings for the selected season."""
     st.markdown("---")
     st.header(f"⚾ MLB Team Standings for {season}")
-    standings = get_team_standings(season=season)
+    
+    standings = get_team_standings_data(season=season)
 
-    if not standings:
-        st.warning("Could not load team standings. Please ensure your API key is correct and active.")
-        return
-
-    if 'records' not in standings or not standings['records']:
-        st.warning(f"No detailed standings data found for {season}. The API response structure might differ from expected.")
+    if not standings or 'records' not in standings or not standings['records']:
+        st.warning(f"No detailed standings data found for {season}. Please ensure your API key is correct and active, and verify the API response structure if issues persist.")
         return
 
     for record in standings['records']:
         division_name = record.get('division', {}).get('name', "Unknown Division")
         st.subheader(division_name)
-        teams = [
+        
+        teams_data = record.get('teamRecords', [])
+        if not teams_data:
+            st.info(f"No team records found for {division_name}.")
+            continue # Skip to next division if no teams
+
+        teams_df = [
             {
                 "Team": t.get('team', {}).get('name', 'N/A'),
                 "W": t.get('wins', 0),
@@ -130,16 +97,14 @@ def render_team_standings(season):
                 "GB": t.get('gamesBack', 'N/A'),
                 "Streak": t.get('streak', {}).get('streakCode', 'N/A'),
             }
-            for t in record.get('teamRecords', [])
+            for t in teams_data
         ]
-        if teams:
-            st.dataframe(teams, hide_index=True, use_container_width=True)
-        else:
-            st.info(f"No team records found for {division_name}.")
+        st.dataframe(teams_df, hide_index=True, use_container_width=True)
+
 
 def render_player_stats(player_id, season):
     """Renders player statistics for the selected player and season."""
-    info = get_player_info(player_id)
+    info = get_player_info_data(player_id)
     if not info:
         st.error(f"No player information found for player ID {player_id}.")
         return
@@ -148,24 +113,29 @@ def render_player_stats(player_id, season):
     pos_code = info.get('PrimaryPosition', {}).get('Code', 'N/A')
     st.subheader(f"{name} - {season} Stats")
 
-    stats_data = get_player_stats(player_id, season)
-    stats = stats_data if isinstance(stats_data, dict) else (stats_data[0] if isinstance(stats_data, list) and len(stats_data) > 0 else {})
+    stats = get_player_stats_data(player_id, season)
+    
+    # Ensure 'stats' is a dictionary, handling cases where it might be a list with one item
+    if isinstance(stats, list) and len(stats) > 0:
+        stats = stats[0]
+    elif not isinstance(stats, dict):
+        stats = {} # Default to empty dict if not a dict or a list with items
 
-    if stats:
-        if pos_code == 'P' or info.get('Position', '').upper() == 'P':
-            col1, col2, col3, col4 = st.columns(4)
-            col1.metric("ERA", stats.get('EarnedRunAverage', 'N/A'))
-            col2.metric("Wins-Losses", f"{stats.get('Wins', 0)}-{stats.get('Losses', 0)}")
-            col3.metric("Strikeouts", stats.get('Strikeouts', 'N/A'))
-            col4.metric("WHIP", stats.get('WalksHitsPerInningPitched', 'N/A'))
-        else:
-            col1, col2, col3, col4 = st.columns(4)
-            col1.metric("AVG", stats.get('BattingAverage', 'N/A'))
-            col2.metric("HR", stats.get('HomeRuns', 'N/A'))
-            col3.metric("RBI", stats.get('RunsBattedIn', 'N/A'))
-            col4.metric("OPS", stats.get('OnBasePlusSlugging', 'N/A'))
-    else:
+    if not stats:
         st.info(f"No stats found for {name} in {season}.")
+        return
+
+    col1, col2, col3, col4 = st.columns(4)
+    if pos_code == 'P' or info.get('Position', '').upper() == 'P': # Pitcher
+        col1.metric("ERA", stats.get('EarnedRunAverage', 'N/A'))
+        col2.metric("Wins-Losses", f"{stats.get('Wins', 0)}-{stats.get('Losses', 0)}")
+        col3.metric("Strikeouts", stats.get('Strikeouts', 'N/A'))
+        col4.metric("WHIP", stats.get('WalksHitsPerInningPitched', 'N/A'))
+    else: # Hitter
+        col1.metric("AVG", stats.get('BattingAverage', 'N/A'))
+        col2.metric("HR", stats.get('HomeRuns', 'N/A'))
+        col3.metric("RBI", stats.get('RunsBattedIn', 'N/A'))
+        col4.metric("OPS", stats.get('OnBasePlusSlugging', 'N/A'))
 
 def main():
     """Main function to run the Streamlit MLB Stats Viewer application."""
@@ -183,6 +153,7 @@ def main():
         st.cache_data.clear()
         st.experimental_rerun()
 
+    # Initialize session state variables once
     st.session_state.setdefault('search_results', None)
     st.session_state.setdefault('selected_player_id', None)
     st.session_state.selected_season = season
@@ -202,13 +173,13 @@ def main():
         st.session_state.selected_player_id = None
 
         if player_input.isdigit():
-            info = get_player_info(player_input)
+            info = get_player_info_data(player_input)
             if info:
                 st.session_state.selected_player_id = player_input
             else:
                 st.error(f"No player found with ID {player_input}")
         else:
-            results = search_player(player_input)
+            results = search_player_data(player_input)
             if not results:
                 st.warning(f"No players found for '{player_input}'.")
             elif len(results) == 1:
@@ -218,11 +189,12 @@ def main():
             else:
                 st.session_state.search_results = results
 
+    # Logic to display search results or player stats
     if st.session_state.get('search_results'):
         st.subheader("Select a player:")
         player_opts = {
             f"{p.get('FullName', 'N/A')} ({p.get('PrimaryPosition', {}).get('Abbreviation', 'N/A')}, {p.get('Team', 'N/A')})": p.get('PlayerID')
-            for p in st.session_state.search_results if p.get('PlayerID')
+            for p in st.session_state.search_results if p.get('PlayerID') # Only include players with an ID
         }
 
         if player_opts:
@@ -230,10 +202,10 @@ def main():
             if choice:
                 st.session_state.selected_player_id = player_opts[choice]
                 st.session_state.search_results = None
-                st.experimental_rerun()
+                st.experimental_rerun() # Rerun to display stats for the selected player
         else:
             st.warning("No selectable players found in search results.")
-            st.session_state.search_results = None
+            st.session_state.search_results = None # Clear if no valid options
             
     elif st.session_state.get('selected_player_id'):
         render_player_stats(st.session_state.selected_player_id, season=season)
