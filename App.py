@@ -2,7 +2,7 @@ import streamlit as st
 import requests
 import datetime
 
-MLB_API_BASE = "https://statsapi.mlb.com/api/v1"
+MLB_API_BASE = "https://sportsdata.io/developers/api-documentation/mlb#standings"
 
 def make_api_request(endpoint, error_message):
     url = f"{MLB_API_BASE}/{endpoint}"
