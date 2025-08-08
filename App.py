@@ -275,7 +275,8 @@ if __name__ == "__main__":
     display_team_standings(api)
     print("Sample Player Stats:\n")
     for pid in [660271, 605141, 547989]:
-        display_player_stats(api, pid)    data = api.get_team_standings(season)
+        display_player_stats(api, pid)    
+        data = api.get_team_standings(season)
     if data:
         print(f"MLB Team Standings ({season}):\n")
         for team in data.get('teams', []):
