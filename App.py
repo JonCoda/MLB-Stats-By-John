@@ -1,18 +1,20 @@
 import streamlit as st
 import requests
 import datetime
+import json # Import json for pretty printing
 
 # Base URL for the SportsData.io MLB API.
 # Remember to verify this URL and the specific endpoints with SportsData.io documentation.
 MLB_API_BASE = "https://api.sportsdata.io/v3/mlb/scores/json"
 
 # IMPORTANT: Replace "YOUR_API_KEY" with your actual SportsData.io subscription key.
-API_KEY = "3031838cee374a47a9ccac67652ae731"
+API_KEY = "3031838cee374a47a9ccac67652ae731" # <<<<<<<<<<<<< ENSURE YOUR REAL API KEY IS HERE
 
 def make_api_request(endpoint, error_msg):
     """
     Makes a GET request to the SportsData.io MLB API.
     Handles API key validation and common request errors.
+    Includes print statements for debugging the raw API response.
     """
     if API_KEY == "YOUR_API_KEY":
         st.error("Please replace 'YOUR_API_KEY' with your actual SportsData.io API key.")
@@ -20,20 +22,31 @@ def make_api_request(endpoint, error_msg):
 
     try:
         url = f"{MLB_API_BASE}/{endpoint}?key={API_KEY}"
+        st.info(f"Attempting API call to: {url}") # Info message for Streamlit UI
+        print(f"\n[DEBUG] Making API request to: {url}") # Print to terminal for debugging
+
         response = requests.get(url)
         response.raise_for_status() # Raises HTTPError for bad responses (4xx or 5xx)
-        return response.json()
+
+        data = response.json()
+        print(f"[DEBUG] Raw API response for {endpoint}:")
+        print(json.dumps(data, indent=2)) # Pretty print JSON to terminal for inspection
+        return data
     except requests.exceptions.HTTPError as e:
-        st.error(f"{error_msg} (HTTP Error: {e.response.status_code}) - Verify API key and endpoint.")
+        st.error(f"{error_msg} (HTTP Error: {e.response.status_code}) - Verify API key and endpoint URL.")
+        print(f"[ERROR] HTTP Error for {endpoint}: {e.response.status_code} - {e.response.text}")
         return {}
     except requests.exceptions.ConnectionError:
         st.error(f"{error_msg} (Connection Error) - Check your internet connection.")
+        print(f"[ERROR] Connection Error for {endpoint}.")
         return {}
     except requests.exceptions.Timeout:
         st.error(f"{error_msg} (Timeout Error) - The request took too long.")
+        print(f"[ERROR] Timeout Error for {endpoint}.")
         return {}
     except requests.exceptions.RequestException as e:
         st.error(f"{error_msg} (An unexpected error occurred: {e})")
+        print(f"[ERROR] Unexpected Request Exception for {endpoint}: {e}")
         return {}
 
 def get_current_season_year():
@@ -55,8 +68,7 @@ def get_current_season_year():
 def get_team_standings(season):
     """
     Fetches team standings for a given season.
-    The `league_ids` parameter was removed as the common SportsData.io endpoint for standings
-    doesn't typically use it as a query parameter directly within the path structure.
+    Assumes API endpoint is 'Standings/{season}'.
     """
     endpoint = f"Standings/{season}"
     return make_api_request(endpoint, f"Couldn't fetch team standings for season {season}.")
@@ -75,8 +87,6 @@ def search_player(player_name):
     """
     Searches for players by name.
     Assumes 'Players' endpoint returns all players, then filters client-side by 'FullName'.
-    If the API supports a direct search parameter (e.g., 'Players?search={player_name}'),
-    the endpoint construction here could be simplified further.
     """
     endpoint = "Players"
     data = make_api_request(endpoint, f"Error searching for player '{player_name}'.")
@@ -105,11 +115,18 @@ def render_team_standings(season):
     standings = get_team_standings(season=season)
 
     if not standings:
-        st.warning("Could not load team standings. Please check API key and endpoint configuration.")
+        st.warning("Could not load team standings. Please ensure your API key is correct and active, and check terminal for errors.")
         return
 
+    # IMPORTANT DEBUGGING STEP:
+    # Print the 'standings' variable here to see its exact structure from the API.
+    # Compare this to how the code tries to access keys like 'records', 'division', 'teamRecords'.
+    # For example, SportsData.io might return a direct list of team objects, not nested 'records'.
+    # print(f"\n[DEBUG] Standings data received for rendering (season {season}):")
+    # print(json.dumps(standings, indent=2))
+
     if 'records' not in standings or not standings['records']:
-        st.warning(f"No detailed standings data found for {season}. Please verify API response structure.")
+        st.warning(f"No detailed standings data found for {season}. The API response structure might differ from expected. Check terminal for raw JSON.")
         return
 
     for record in standings['records']:
@@ -145,6 +162,14 @@ def render_player_stats(player_id, season):
     stats_data = get_player_stats(player_id, season)
     stats = stats_data if isinstance(stats_data, dict) else (stats_data[0] if isinstance(stats_data, list) and len(stats_data) > 0 else {})
 
+    # IMPORTANT DEBUGGING STEP:
+    # Print the 'stats_data' and 'stats' variables here to see their exact structure.
+    # Ensure keys like 'EarnedRunAverage', 'BattingAverage', etc. match what's in the API response.
+    # print(f"\n[DEBUG] Player stats data received for rendering (Player ID {player_id}, season {season}):")
+    # print(json.dumps(stats_data, indent=2))
+    # print(f"[DEBUG] Processed stats dictionary: {json.dumps(stats, indent=2)}")
+
+
     if stats:
         if pos_code == 'P' or info.get('Position', '').upper() == 'P':
             col1, col2, col3, col4 = st.columns(4)
@@ -177,10 +202,9 @@ def main():
         st.cache_data.clear()
         st.experimental_rerun()
 
-    # Simplified session state initialization using setdefault
     st.session_state.setdefault('search_results', None)
     st.session_state.setdefault('selected_player_id', None)
-    st.session_state.selected_season = season # Always update with the currently selected season
+    st.session_state.selected_season = season
 
     with st.expander(f"View {season} Team Standings", expanded=True):
         render_team_standings(season=season)
@@ -217,7 +241,7 @@ def main():
         st.subheader("Select a player:")
         player_opts = {
             f"{p.get('FullName', 'N/A')} ({p.get('PrimaryPosition', {}).get('Abbreviation', 'N/A')}, {p.get('Team', 'N/A')})": p.get('PlayerID')
-            for p in st.session_state.search_results if p.get('PlayerID') # Filter out players without an ID
+            for p in st.session_state.search_results if p.get('PlayerID')
         }
 
         if player_opts:
