@@ -94,7 +94,7 @@ def main():
                 options = {f"{p.get('fullName', 'N/A')} ({p.get('primaryPosition', {}).get('abbreviation', '')}, {p.get('currentTeam', {}).get('name', '')})": p.get('id') for p in players}
                 selected = st.selectbox("Choose player", list(options.keys()))
                 if selected:
-                    display_player_stats(api, options[selected], season)import streamlit as st
+                    display_player_stats(api, options[selected], season)
 
 if __name__ == "__main__":
     main()
