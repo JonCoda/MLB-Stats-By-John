@@ -116,9 +116,6 @@ if __name__ == "__main__":
             data = response.json()
             # Some APIs return 'people', others may return 'results'
             return data.get('people', [])
-        except requests.exceptions.RequestException as e:
-            print(f"Error searching for player '{player_name}': {e}")
-            return None
 
 def display_team_standings(api, season="2024"):
     data = api.get_team_standings(season=season)
