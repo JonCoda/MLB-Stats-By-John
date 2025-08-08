@@ -125,7 +125,7 @@ if __name__ == "__main__":
         try:
             response = requests.get(url)
             response.raise_for_status()
-            data = response.json()
+            data = response()
         return data.get('people', [])  # Return list of players, or empty list
         except requests.exceptions.RequestException as e:
             print(f"Error searching for player '{player_name}': {e}")
