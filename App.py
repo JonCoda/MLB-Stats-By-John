@@ -195,10 +195,8 @@ if __name__ == "__main__":
                 else:
                     print("Invalid choice.")
             except ValueError:
-                print("Invalid input. Please enter a number.")        except requests.exceptions.RequestException as e:
-            print(f"Error searching for player '{player_name}': {e}")
-            return None
-
+                print("Invalid input. Please enter a number.")
+                
 def display_team_standings(api, season="2024"):
     data = api.get_team_standings(season=season)
     if data and 'records' in data:
