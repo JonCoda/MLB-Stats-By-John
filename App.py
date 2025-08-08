@@ -4,7 +4,7 @@ import requests
 class MLBApi:
     BASE_URL = "https://statsapi.mlb.com/api/v1"
 
-    def get_team_standings(self, season="2024"):
+    def get_team_standings(self, season="2025"):
         url = f"{self.BASE_URL}/standings?season={season}&leagueId=103,104"
         try:
             response = requests.get(url)
@@ -95,8 +95,3 @@ def main():
                 selected = st.selectbox("Choose player", list(options.keys()))
                 if selected:
                     display_player_stats(api, options[selected], season)
-
-if __name__ == "__main__":
-    main()        except requests.exceptions.RequestException as e:
-            st.error(f"Error searching for player '{player_name}': {e}")
-            return None
