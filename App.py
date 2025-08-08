@@ -129,7 +129,6 @@ if __name__ == "__main__":
         try:
             response = requests.get(url, headers=self.get_headers())
             response.raise_for_status()
-            return response.json()
         except requests.exceptions.RequestException as e:
             print(f"Failed to fetch stats for player ID {player_id} (season {season}): {e}")
             return None
