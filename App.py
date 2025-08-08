@@ -13,7 +13,17 @@ def make_api_request(endpoint, error_message):
     except requests.exceptions.RequestException as e:
         st.error(f"{error_message}: {e}")
         return None
-
+        
+def make_api_request(endpoint, error_message):
+    url = f"{MLB_API_BASE}/{endpoint}"
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        st.error(f"{error_message}: {e}")
+        return None
+        
 @st.cache_data(ttl=3600)
 def get_team_standings(season, league_ids="103,104"):
     endpoint = f"standings?leagueId={league_ids}&season={season}"
