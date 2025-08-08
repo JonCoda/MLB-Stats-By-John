@@ -111,7 +111,7 @@ def main():
                     display_player_stats(api, selected_id, season)
 
 if __name__ == "__main__":
-    main()            response = requests.get(url)
+    main()  response = requests.get(url)
             response.raise_for_status()
             data = response.json()
             # Some APIs return 'people', others may return 'results'
