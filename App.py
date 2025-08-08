@@ -132,8 +132,5 @@ def division_standings_app():
     show_division_standings(season)
 
 if __name__ == "__main__":
-    division_standings_app()
-
-if __name__ == "__main__":
     main()
     
