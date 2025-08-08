@@ -14,17 +14,6 @@ def make_api_request(endpoint, error_message):
         st.error(f"{error_message}: {e}")
         return None
 
-def get_current_season_year():
-    # Try to get current season from the MLB API; fallback to current year
-    endpoint = "seasons/current"
-    data = make_api_request(endpoint, "Couldn't fetch current MLB season.")
-    if data and 'seasonId' in data:
-        try:
-            return int(data['seasonId'])
-        except Exception:
-            pass
-    return datetime.datetime.now().year
-
 @st.cache_data(ttl=3600)
 def get_team_standings(season, league_ids="103,104"):
     endpoint = f"standings?leagueId={league_ids}&season={season}"
